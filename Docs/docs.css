@@ -1,0 +1,39 @@
+fieldset{
+	margin:10px;
+	padding:5px;
+	border:0;
+	border-top:2px solid black;
+	padding-bottom:10px;
+ }
+.logger-output{
+	background-color:#000000;
+	color:#eeeeee;
+	border:1px solid #cccccc;
+	padding:5px;
+}
+.code{
+	background-color:#eee;
+	border:1px dashed #666666;
+	padding:5px;
+}
+table.descriptor{
+	border:1px solid #999999;
+	border-collapse:collapse;
+}
+table.descriptor tbody,table.details thead,table.details tfoot{
+	border:1px solid #999999;
+	border-collapse:collapse;
+}
+table.descriptor tr{
+	border:1px solid #999999;
+	border-collapse:collapse;
+}
+
+table.descriptor th,table.details td{
+	border:1px solid #999999;
+	border-collapse:collapse;
+	padding:4px;
+ }
+table.descriptor th{
+	text-align:left;
+ }

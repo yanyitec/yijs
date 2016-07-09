@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+  <link href="../docs.css" type="text/css" rel="stylesheet"></link>
+  <script type="text/javascript" src="../../Scripts/yi.diagnosis.js"></script>
+  <script type="text/javascript" src="../../Scripts/yi.assert.helper.js"></script>
+ </head>
+ <body>
+ <div class='summary'>
+	<h1>yi.console.Console</h1>
+	<div>虚拟控制台</div>
+ </div>
+ <div style='height:400px;width:400px;position:relative;'>
+ <div id='console' style='height:400px;width:400px;'></div>
+ </div>
+		<script subtype='test'>
+var vconsole = new yi.console.Console(document.getElementById("console"));
+vconsole.init({
+	quickActions:{"clear":function(){console.clear();}}
+});
+yi.console.enable();
+yi.console.quickActions({
+	"intrude":function(){
+		yi.log("before intrude");
+		yi.console.intrude(true);
+		$log("after intrude.");}
+});
+		</script>
+		</li>
+	</ul>
+ </fieldset>  
+
+ </body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+  <link href="../docs.css" type="text/css" rel="stylesheet"></link>
+  <script type="text/javascript" src="../../Scripts/yi.core.js"></script>
+  <script type="text/javascript" src="../../Scripts/yi.diagnosis.js"></script>
+  <script type="text/javascript" src="../../Scripts/yi.assert.helper.js"></script>
+ </head>
+ <body>
+ <h1>yi.async</h1>
+ <fieldset class='summary class x-able'>
+	<legend>描述</legend>
+	解析Url
+ </fieldset>
+ <fieldset class='member function'>
+	<legend><h2>yi.Uri</h2></legend>
+	<ul><li><h3>创建一个Uri信息</h3>
+	<table class='descriptor'>
+		<thead>
+			<tr><th colspan="3" class='name'>Description</th></tr>
+			<tr><td colspan ="3" class='description'>返回一个Uri对象，包含分析后的信息</td></tr>
+			<tr><th colspan="3" class='name'>Parameters</th></tr>
+			<tr><th class='name'>Name</th><th class='type'>Type</th><th class='description'>Description</th></tr>
+			
+		</thead>
+		<tbody class='parameters'>
+			<tr><td class='name'>url</td><td class='type'>string</td><td  class='description'>url字符串</td></td>
+			
+		</tbody>
+		<tfoot>
+			<tr>
+				<th colspan="3"></th>
+			</tr>
+		</tfoot>
+	</table></li>
+	<li>
+	<script subtype='test'>
+$assert.scope(function($assert,log){
+	var uri = new yi.Uri("http://ms.com/as/bs.html?a=b");
+	log("result:",uri);
+	$assert.True(uri.isAbsolute);
+	$assert("http://ms.com/as/bs.html?a=b",uri.url);
+	$assert(uri.toString(),uri.url);
+	$assert("http://",uri.protocol);
+	$assert("?a=b",uri.qs);
+	$assert("ms.com",uri.domain);
+	$assert("/as/bs.html",uri.path);
+	$assert("bs.html",uri.file);
+	$assert(".html",uri.ext);
+	
+});//$assert
+	</script>	
+	</li>
+	</ul>
+ </fieldset>
+<fieldset class='member function'>
+	<legend><h2>yi.Uri.resolve</h2></legend>
+	<ul><li><h3>解析一个uri</h3>
+	<table class='descriptor'>
+		<thead>
+			<tr><th colspan="3" class='name'>Description</th></tr>
+			<tr><td colspan ="3" class='description'>返回一个Uri对象，包含分析后的信息</td></tr>
+			<tr><th colspan="3" class='name'>Parameters</th></tr>
+			<tr><th class='name'>Name</th><th class='type'>Type</th><th class='description'>Description</th></tr>
+			
+		</thead>
+		<tbody class='parameters'>
+			<tr><td class='name'>url</td><td class='type'>string</td><td  class='description'>url字符串</td></td>
+			
+		</tbody>
+		<tfoot>
+			<tr>
+				<th colspan="3"></th>
+			</tr>
+		</tfoot>
+	</table></li>
+	<li>
+	<script subtype='test'>
+$assert.scope(function($assert,log){
+	yi.Uri.bas = "http://google.cn/static/";
+	yi.Uri.maps = {
+		"js":"scripts/"
+	}
+	var uri = yi.Uri.resolve("js/bs/hello.js");
+	
+	log("result:",uri);
+	
+	
+});//$assert
+	</script>	
+	</li>
+	</ul>
+ </fieldset>
+ </body>
+</html>

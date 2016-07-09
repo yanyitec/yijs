@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+  <link href="../docs.css" type="text/css" rel="stylesheet"></link>
+  <script type="text/javascript" src="../../Scripts/yi.diagnosis.js"></script>
+  <script type="text/javascript" src="../../Scripts/yi.assert.helper.js"></script>
+ </head>
+ <body>
+ <div class='summary'>
+	<h1>yi.log</h1>
+	<div>日志机制</div>
+ </div>
+ <fieldset>
+	<legend><h2>yi.log 日志</h2></legend>
+	<ul>
+		<li><h3>说明</h3><table class='descriptor'>
+			<thead>
+				<tr><th colspan="3">Description</th></tr>
+				<tr><td colspan ="3">记录日志，输出到某个指定的控制台</td></tr>
+				<tr><th colspan="3" class='parameters'>Parameters</th></tr>
+				<tr><th>Name</th><th>Type</th><th>Description</th></tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td class='parameter' colspan='3'>不定参数，可以放任意多的进去</td>
+					
+				</tr>
+				
+				<tr><td class='returns'>RETURNS</td><td class='type'>undefined</td><td>undefined</td></tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th colspan="3">
+					
+					</th>
+				</tr>
+				
+		</tfoot></table></li>
+		<li>
+		<script subtype='test'>
+$assert.scope(function($assert){
+var console = $assert;//因为要把输出重定向到Html的console,这里没有使用全局的yi.log，而是使用了$assert上的log
+var obj={"author":"yiy","date":"2016-6-11"};
+var logger = console.log("supper logger",obj,[1,2,obj,{"hello":obj}]);
+$assert.Equal(console,logger);
+});//$assert
+		</script>
+		</li>
+	</ul>
+ </fieldset>  
+ <fieldset>
+	<legend><h2>yi.log.Logger.fail, yi.log.Logger.debug.. 日志分类</h2></legend>
+	<ul>
+		<li><h3>说明</h3><table class='descriptor'>
+			<thead>
+				<tr><th colspan="3">Description</th></tr>
+				<tr><td colspan ="3">日志可以分类，默认的分类有 "assert","debug",'success', "info", "notice",  "warming", "fail"</td></tr>
+				<tr><th colspan="3" class='parameters'>Parameters</th></tr>
+				<tr><th>Name</th><th>Type</th><th>Description</th></tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td class='parameter' colspan='3'>不定参数，可以放任意多的进去</td>
+					
+				</tr>
+				
+				<tr><td class='returns'>RETURNS</td><td class='type'>undefined</td><td>undefined</td></tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th colspan="3">
+					
+					</th>
+				</tr>
+				
+		</tfoot></table></li>
+		<li>
+		<script subtype='test'>
+$assert.scope(function($assert){
+var logger = $assert.logger;//因为要把输出重定向到Html的console,这里没有使用全局的yi.log，而是使用了$assert上的log
+var obj={"author":"yiy","date":"2016-6-11"};
+//debug
+logger.log("##debug","Debug");
+logger.debug("Debug again");
+//success
+logger.log("##success","Success");
+logger.success("Success again");
+//info
+logger.log("##info","Info");
+logger.info("Info again");
+
+//notice
+logger.log("##notice","Notice");
+logger.notice("Notice again");
+//warming
+logger.log("##warming","Warming");
+logger.warming("Warming again");
+//fail
+logger.log("##fail","Fail");
+logger.fail("Fail again");
+});//$assert
+		</script>
+		</li>
+	</ul>
+ </fieldset>  
+<fieldset>
+	<legend><h2>yi.log.Logger.on/yi.log.Logger.off 开启/关闭日志</h2></legend>
+	<ul>
+		<li><h3>说明</h3><table class='descriptor'>
+			<thead>
+				<tr><th colspan="3">Description</th></tr>
+				<tr><td colspan ="3">打开/关闭日志功能 turn on/off the log/some level</td></tr>
+				<tr><th colspan="3" class='parameters'>Parameters</th></tr>
+				<tr><th>Name</th><th>Type</th><th>Description</th></tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td class='parameter' colspan='3'>不定参数，可以放任意多的进去</td>
+					
+				</tr>
+				
+				<tr><td class='returns'>RETURNS</td><td class='type'>undefined</td><td>undefined</td></tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th colspan="3">
+					
+					</th>
+				</tr>
+				
+		</tfoot></table></li>
+		<li>
+		<script subtype='test'>
+$assert.scope(function($assert){
+var logger = $assert.logger;//因为要把输出重定向到Html的console,这里没有使用全局的yi.log，而是使用了$assert
+//关闭掉info 跟notice
+logger.disable("info","notice");
+//以下内容都不会输出到控制台
+logger.info("try to info something.");
+logger.log("##notice","try to notice.");
+//但是其他类型还可以输出
+logger.warming("some type of log is turned off.");
+//关闭所有日志功能
+logger.disable();
+//以下内容都不会输出到控制台
+logger.log("success","off?");
+logger.fail("failed!!!");
+//打开日志功能
+logger.enable();
+//把刚才禁用掉的notice类型重启turn on
+logger.enable("notice");
+logger.log("success","yes,turned on");
+logger.notice("can tell some notice");
+
+});//$assert
+		</script>
+		</li>
+	</ul>
+ </fieldset> 
+ <fieldset>
+	<legend><h2>yi.log.Logger.config 配置日志器</h2></legend>
+	<ul>
+		<li><h3>说明</h3><table class='descriptor'>
+			<thead>
+				<tr><th colspan="3">Description</th></tr>
+				<tr><td colspan ="3">重新配置日志器 turn on/off the log/some level</td></tr>
+				<tr><th colspan="3" class='parameters'>Parameters</th></tr>
+				<tr><th>Name</th><th>Type</th><th>Description</th></tr>
+			</thead>
+			<tbody>
+				<tr><td>opts</td><td>[object Object]</td><td>默认是这样的<pre>var opts = {
+	//输出函数,原型为:
+	//function(
+	//	type/*string日志类型*/,
+	//	contents/*array输出的内容*/,
+	//	start/*从内容的第几个开始，默认是0*/
+	//)
+	output: log.defaultOutput,
+	//类型
+	levels: levels: ["debug","fail","warming","notice","info",'success',"assert"],
+	//默认类型,如果不配置，或配置的默认类型不在levels列表中，会把levels中的第一个当作defaultLevel
+	defaultLevel: "debug"
+}</pre>
+		每个参数都可以单独设置，如: logger.config({levels:["error","debug"]});表示只重新设置了输出类型，其他的配置按照原先的不变。
+		</td></tr>
+				
+				<tr><td class='returns'>RETURNS</td><td class='type'>[object yi.log.Logger]</td><td>this,logger</td></tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th colspan="3">
+					
+					</th>
+				</tr>
+				
+		</tfoot></table></li>
+		<li>
+		<script subtype='test'>
+$assert.scope(function($assert){
+var logger = $assert.logger;//因为要把输出重定向到Html的console,这里没有使用全局的yi.log，而是使用了$assert
+logger.log("##fail","fail can be output");
+logger.config({
+	levels:["ok","error"],
+	//可以给新设置的levels指定显示颜色
+	css:{"ok":"color:darkgreen",error:"color:darkred"}
+});
+$assert.NotExists(logger.fail);
+$assert.Exists(logger.error);
+logger.ok("re ok.");
+logger.log("##ok","retry ok");
+logger.error("re error.");
+logger.log("##error","retry error");
+
+});//$assert
+		</script>
+		</li>
+	</ul>
+ </fieldset>
+ </body>
+</html>

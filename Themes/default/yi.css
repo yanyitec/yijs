@@ -1,0 +1,87 @@
+*{
+	margin:0;
+	padding:0;
+	font-size:12px;
+	line-height:18px;
+}
+.messageBox{
+	border:1px solid #061B2E;
+	border-radius:6px 6px 0 0;
+	background-color:#F2FAFC;
+	min-width:200px;
+	text-align:left;
+}
+.messageBox .caption{
+	padding:5px;
+	background-color:#0F507A;
+	border-radius:5px 5px 0 0;
+	color:#F9F5F2;
+	font-weight:bold;
+}
+.messageBox .content{
+	border-radius:5px 5px 0 0;
+	color:#061B2E;
+	padding:5px;
+}
+
+.messageBox .buttons{
+	color:#061B2E;
+	padding:5px;
+	text-align:right;
+}
+button ,input[type='button']{
+	background-color:#6C8E96;
+	color:#FCEDE2;
+	border:1px solid #65848C;
+	border-radius:4px;
+}
+
+.menu{
+	position:absolute;
+}
+
+
+.tree-item{
+	position:relative;
+	list-style-type :none;
+}
+.tree-item > ul{
+	display:none;
+}
+.tree-item > ul.expand{
+	display:block;	
+}
+
+.tree-item > div.item{
+	height:22px;
+	line-height:22px;
+}
+
+.tree-item > div.item > span.icon{
+
+	width:22px;height:22px;
+}
+.tree-item > div.item > a.text{
+	margin-left:22px;
+	height:22px;
+	margin-right:2px;
+}
+.tree-item > div.item > span.sub-indicator{
+	display:block;
+	width:22px;
+	height:22px;
+	float:right;
+}
+
+.menu .tree-item > div.item{
+	
+}
+.menu .tree-item > ul.children{
+	position:absolute;
+	top:-20px;
+	right:0;
+}
+
+.tree ul.children{
+	margin-left:24px;
+}

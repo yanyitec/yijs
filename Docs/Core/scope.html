@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <script type="text/javascript" src="../../Scripts/yi.core.js"></script>
+  <title>Document</title>
+ </head>
+ <body>
+ <script type="text/javascript">
+ <!--
+
+
+
+//alert(depRegx.exec(expr));
+ //-->
+ </script>
+<div id="tmpl">
+	<select bind-each="Countries" bind-value='Country'>
+		<option bind-value="value" bind-text="text"></option>
+	</select>
+	<!--input type='text' name="" bind-value="Username" / -->
+	<div bind-with="Profile">
+		<input type="text" name="nick" bind-value="Nick" bind-visible="$root.IsNickVisible" />
+		<input type='button' value='click me' bind-click="$parent.visibleHandler" />
+	</div>
+</div>
+<textarea id='json' style="width:500px;height:500px;position:absolute;right:0;top:0;"></textarea>
+<input type='button' onclick="getJSON()" value="get json"/>
+<input type='button' onclick="parseJSON()" value="parse json"/>
+ <script type="text/javascript">
+ <!--
+var getJSON = function(){
+	document.getElementById("json").value = JSON.stringify(model.getValue());
+}
+var parseJSON = function(){
+	var obj = JSON.parse(document.getElementById("json").value);
+	model.setValue(obj);
+}
+var elem = document.getElementById("tmpl");
+var model = new yi.Model();
+var rootModel = model;
+yi.bind(elem,model);
+model.accessor.IsNickVisible(true);
+model.accessor.visibleHandler(function(){
+	model.accessor.IsNickVisible(!model.accessor.IsNickVisible());
+});
+model.accessor.Profile.Nick("yanyi");
+
+model.accessor.Countries([{value:"zh-cn",text:"China"},{value:"zh-tw",text:"Taiwan"},{value:"en-en",text:"English"}]);
+model.accessor.Country("zh-tw");
+ //-->
+ </script>
+ </body>
+</html>

@@ -1,0 +1,423 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="Generator" content="EditPlus®">
+    <meta name="Author" content="">
+    <meta name="Keywords" content="">
+    <meta name="Description" content="">
+    <title>Document</title>
+    <link href="../docs.css" type="text/css" rel="stylesheet"></link>
+    <script type="text/javascript" src="../../Scripts/yi.core.js"></script>
+    <script type="text/javascript" src="../../Scripts/yi.diagnosis.js"></script>
+    <script type="text/javascript" src="../../Scripts/yi.assert.helper.js"></script>
+
+</head>
+<body>
+    <h1>yi.Model</h1>
+    <fieldset>
+        <legend>描述</legend>
+        可观察的数据模型
+    </fieldset>
+    <fieldset class='descriptor'>
+        <legend><h2>yi.Model.setValue/yi.Model.getValue</h2></legend>
+        <ul>
+            <li>
+                <h3>说明</h3>
+                <table class='descriptor'>
+                    <thead>
+                        <tr><th colspan="3">Description</th></tr>
+                        <tr><td colspan="3">设置，或获取数据项的值</td></tr>
+                        <tr><th colspan="3" class='parameters'>Parameters</th></tr>
+                        <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class='parameter'>value</td>
+                            <td class='type'>*</td>
+                            <td>要设置的值</td>
+                        </tr>
+                        <tr>
+                            <td class='parameter'>reason</td>
+                            <td class='type'>string</td>
+                            <td>传递给事件用的，表明改变的原因，默认是value.set</td>
+                        </tr>
+                        <tr><th class='returns'>RETURNS</th><td class='type'>*</td><td>该数据项中装载的值</td></tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3"></th>
+                        </tr>
+
+                    </tfoot>
+                </table>
+            </li>
+            <li>
+                <script subtype='test'>
+$assert.scope(function($assert,log){
+    var ob = new yi.Model();
+    
+    var prop = ob.prop("name","yiy");
+	//订阅valuechange事件
+	prop.subscribe("valuechange",function(evt){
+	    log("valuechanged at first time:", evt);
+	    //$assert("set", evt.type);
+	    $assert("yi", evt.value);
+	    $assert("yiy", evt.old);
+	    $assert(prop, evt.sender);
+	    $assert(prop, this);
+	    $assert("value.set", evt.reason);
+	    $assert.valueChangeInvoked = ($assert.valueChangeInvoked||0) +1;
+	    return "%discard";
+	});
+	var targ = ob.getValue();
+	$assert("yiy", targ.name);
+	$assert("yiy", prop.getValue());
+    //改变了属性值
+	prop.setValue("yi");
+    //对应对象的属性值也发生了改变
+	$assert("yi", targ.name);
+    //获取属性值也发生了改变
+	$assert("yi", prop.getValue());
+    //事件会被调用
+	$assert(1, $assert.valueChangeInvoked);
+    //再注册一个监听函数
+	prop.subscribe(function (evt) {
+	    log("valuechanged at second time:", evt);
+	    $assert("myreason", evt.reason);
+	    $assert("source", evt.source);
+	    $assert.valueChangeInvoked1 = ($assert.valueChangeInvoked1 || 0) + 1;
+	});
+    //用指定的原因与源设置值
+	prop.setValue("yanyi", "myreason", "source");
+	$assert(1, $assert.valueChangeInvoked);
+	$assert(1, $assert.valueChangeInvoked1);
+	
+});//$assert
+
+                </script>
+            </li>
+        </ul>
+    </fieldset>
+    <fieldset class='descriptor'>
+        <legend><h2>yi.Model.object</h2></legend>
+        <ul>
+            <li>
+                <h3>说明</h3>
+                <table class='descriptor'>
+                    <thead>
+                        <tr><th colspan="3">Description</th></tr>
+                        <tr><td colspan="3">获取或指定该数据项在那个对象上。变更对象会以object.change为reason触发Model的valuechange事件</td></tr>
+                        <tr><th colspan="3" class='parameters'>Parameters</th></tr>
+                        <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class='parameter'>value</td>
+                            <td class='type'>object/function</td>
+                            <td>对象</td>
+                        </tr>
+                        <tr>
+                            <td class='parameter'>source</td>
+                            <td class='type'>string</td>
+                            <td>事件源</td>
+                        </tr>
+                        <tr><th class='returns'>RETURNS</th><td class='type'>yi.Model / object / function</td><td>如果是设置，返回this;否者返回对象</td></tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3"></th>
+                        </tr>
+
+                    </tfoot>
+                </table>
+            </li>
+            <li>
+                <script subtype='test'>
+$assert.scope(function($assert,log){
+    var ob = new yi.Model();
+    var targ = ob.object();
+    var prop = ob.prop("name","yiy");
+	//订阅valuechange事件
+	prop.subscribe("valuechange",function(evt){
+	    log("valuechanged when object changed:", evt);
+	    //$assert("set", evt.type);
+	    $assert("yanyi", evt.value);
+	    $assert("yiy", evt.old);
+	    $assert(prop, evt.sender);
+	    $assert(prop, this);
+	    $assert("object.change", evt.reason);
+	    $assert.valueChangeInvoked = ($assert.valueChangeInvoked||0) +1;
+	});
+	$assert();
+	var newTarg = {name:"yanyi"};
+    //改变了对象
+	prop.object(newTarg);
+	$assert(1, $assert.valueChangeInvoked);
+
+});//$assert
+
+                </script>
+            </li>
+        </ul>
+    </fieldset>
+
+    <fieldset class='descriptor'>
+        <legend><h2>yi.Model.accessor</h2></legend>
+        <ul>
+            <li>
+                <h3>说明</h3>
+                <table class='descriptor'>
+                    <thead>
+                        <tr><th colspan="3">Description</th></tr>
+                        <tr><td colspan="3">获取对象的accessor属性，该属性是一个function,可以通过该accessor读写它的值</td></tr>
+                        <tr><th colspan="3" class='parameters'>Parameters</th></tr>
+                        <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class='parameter'>value</td>
+                            <td class='type'>object/function</td>
+                            <td>对象</td>
+                        </tr>
+                        <tr>
+                            <td class='parameter'>source</td>
+                            <td class='type'>string</td>
+                            <td>事件源</td>
+                        </tr>
+                        <tr><th class='returns'>RETURNS</th><td class='type'>yi.Model / object / function</td><td>如果是设置，返回this;否者返回对象</td></tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3"></th>
+                        </tr>
+
+                    </tfoot>
+                </table>
+            </li>
+            <li>
+                <script subtype='test'>
+$assert.scope(function($assert,log){
+    var ob = new yi.Model();
+    //定义一个属性a
+    ob.prop("a");
+    //定义一个属性b
+    var b = ob.prop("b");
+    //在属性b上定义属性c
+    b.prop("c");
+    var acc = ob.accessor;
+    //给属性a赋值
+    acc.a(2);
+    //给属性b赋值
+    acc.b({ c: 5, d: 10 });
+    log("a's value:", acc.a());
+    $assert(2, acc.a());
+    log("b.c's value:",acc.b.c());
+    $assert(5, acc.b.c());
+    //直接获取根的值
+    var obj = acc();
+    log("object is :", obj);
+    $assert(10,obj.b.d);
+});//$assert
+
+                </script>
+            </li>
+        </ul>
+    </fieldset>
+    <fieldset class='descriptor'>
+        <legend><h2>yi.Model.clone</h2></legend>
+        <ul>
+            <li>
+                <h3>说明</h3>
+                <table class='descriptor'>
+                    <thead>
+                        <tr><th colspan="3">Description</th></tr>
+                        <tr><td colspan="3">深度克隆一个Model，并保持其原先定义的属性</td></tr>
+                        <tr><th colspan="3" class='parameters'>Parameters</th></tr>
+                        <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class='parameter'>obj</td>
+                            <td class='type'>object</td>
+                            <td>克隆后,observer的观察对象，如果不设置该值。则保持原来的观察对象不变</td>
+                        </tr>
+                        <tr>
+                            <td class='parameter'>incEvt</td>
+                            <td class='type'>boolean</td>
+                            <td>是否克隆事件</td>
+                        </tr>
+                        <tr><th class='returns'>RETURNS</th><td class='type'>yi.Model / object / function</td><td>如果是设置，返回this;否者返回对象</td></tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3"></th>
+                        </tr>
+
+                    </tfoot>
+                </table>
+            </li>
+            <li>
+                <script subtype='test'>
+$assert.scope(function($assert,log){
+    var ob = new yi.Model();
+    //定义一个属性a
+    ob.prop("a");
+    //定义一个属性b
+    var b = ob.prop("b");
+    //在属性b上定义属性c
+    b.prop("c");
+    var newTag = { a: 4, b: { c: 5 } };
+    var newObj = {};
+    newObj[ob.name()] = newTag;
+    var clone = ob.clone(newObj);
+    log("o.a:", clone.prop("a").getValue());
+    log("o.b:", clone.prop("b").getValue());
+    $assert(4, clone.prop("a").getValue());
+    $assert(5,clone.prop("b").prop("c").getValue());
+});//$assert
+
+                </script>
+            </li>
+        </ul>
+    </fieldset>
+
+    <fieldset class='descriptor'>
+        <legend><h2>yi.Model.asArray</h2></legend>
+        <ul>
+            <li>
+                <h3>说明</h3>
+                <table class='descriptor'>
+                    <thead>
+                        <tr><th colspan="3">Description</th></tr>
+                        <tr><td colspan="3">当作数组，添加数组操作</td></tr>
+                        <tr><th colspan="3" class='parameters'>Parameters</th></tr>
+                        <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class='parameter'>tpl</td>
+                            <td class='type'>object / yi.Model</td>
+                            <td>模板的定义。或者直接给个Model当作模板,参见yi.Model.define</td>
+                        </tr>
+                        
+                        <tr><th class='returns'>RETURNS</th><td class='type'>yi.Model / object / function</td><td>如果是设置，返回this;否者返回对象</td></tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3"></th>
+                        </tr>
+
+                    </tfoot>
+                </table>
+            </li>
+            <li>
+                <script subtype='test'>
+$assert.scope(function($assert,log){
+    var ob = new yi.Model();
+    ob.asArray();
+    var arr = ob.accessor;
+    $assert(0,arr.count());
+    ob.push(1);
+    log("value at 0:",arr.valueAt(0));
+    $assert(1, ob.valueAt(0));
+    $assert(1, ob.count());
+    arr.unshift(2);
+    log("value at 0:", arr.valueAt(0));
+    $assert(2, ob.valueAt(0));
+    $assert(2, ob.count());
+    log("value at 1:", ob.valueAt(1));
+    $assert(1, arr.valueAt(1));
+    arr.subscribe("valuechange", function (evt) {
+        log("evt:", evt);
+    });
+    var val = arr.pop();
+    log("pop:", val);
+    $assert(1,val);
+});//$assert
+
+                </script>
+            </li>
+        </ul>
+    </fieldset>
+
+
+    <fieldset class='descriptor'>
+        <legend><h2>yi.Model.define</h2></legend>
+        <ul>
+            <li>
+                <h3>说明</h3>
+                <table class='descriptor'>
+                    <thead>
+                        <tr><th colspan="3">Description</th></tr>
+                        <tr><td colspan="3">定义该数据模型的结构</td></tr>
+                        <tr><th colspan="3" class='parameters'>Parameters</th></tr>
+                        <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class='parameter'>tpl</td>
+                            <td class='type'>object / yi.Model</td>
+                            <td>模板的定义。或者直接给个Model当作模板。参见yi.Model.define</td>
+                        </tr>
+
+                        <tr><th class='returns'>RETURNS</th><td class='type'>yi.Model / object / function</td><td>如果是设置，返回this;否者返回对象</td></tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3"></th>
+                        </tr>
+
+                    </tfoot>
+                </table>
+            </li>
+            <li>
+                <script subtype='test'>
+$assert.scope(function($assert,log){
+    var ob = new yi.Model();
+    ob.define({
+        $model_type: "object",
+        condiction: {
+            $model_type: "object",
+            keyword: {
+                $model_type: "text",
+            }
+        },
+        rows: {
+            $model_type: "array",
+            template: {
+                $model_type: "object",
+                Id: { $model_type: "number" },
+                Name: { $model_type: "text" }
+            }
+        },
+        recordCount: {
+            $model_type: "number",
+            readonly: true
+        },
+        pageNo: {
+            $model_type: "number"
+        },
+        pageCount: {
+            $model_type: "number",
+            readonly:true
+        },
+        pageSize: {
+            $model_type: "number"
+        }
+    });
+    var val = ob.getValue();
+    var acc = ob.accessor;
+    acc.recordCount(10);
+    acc.condiction.keyword("yi");
+    acc.rows.push({Id:1,Name:"yiy"});
+    log("the value of Model after define:", val);
+    
+});//$assert
+
+                </script>
+            </li>
+        </ul>
+    </fieldset>
+</body>
+</html>

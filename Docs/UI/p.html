@@ -1,0 +1,342 @@
+﻿<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+ </head>
+ <body>
+ <textarea id="source" style="width:100%;height:200px;">Letters=>abcdefg
+Numbers=>0123456789
+VarName=>Letters|Numbers
+Opers=>+-*/
+Expr=>Expr|Opers|Expr
+Expr=>VarName
+Expr=>Numbers</textarea>
+<textarea id="op" style="width:100%;height:200px;"></textarea>
+<input type="button" onclick="main()" />
+<script type="text/javascript">
+    var _idseed = 1;
+    //一个表达式抽象，name表示该生成式的名字，match表示匹配函数
+    var Expression = function (name) {
+        this.name = name;
+        this.min = function (v) {
+            if (v === undefined) return this["@gamma.min"];
+            this["@gamma.min"] = v; return this;
+        }
+        this.max = function (v) {
+            if (v === undefined) return this["@gamma.max"];
+            this["@gamma.max"] = v; return this;
+        }
+        //inputs的结构是:text->输入文本，at = 当前应该从那个字符开始，lineAt=行号，charAt = 行内字符数量，onmatch =如果有匹配，调用该事件函数
+        //result的结构:如果没有匹配，返回null. name=表达式名，expression，表达式本身，start =开始字符，length 匹配的数量,text 输入的文本
+        this.match = function (context) {
+            var input = context.input,at = context.at,len = input.length;
+            
+            var min = this["@gamma.min"];
+            if (min === undefined) min = 1;
+            for (var i = 0, j = min; i < j; i++) {
+                var cc = this.check(at,input,context);
+                if (cc===undefined) return null;
+                if ((at+=cc) > len) return null;
+                
+            }
+            var max = this["@gamma.max"];
+            if (max !== undefined) {
+                while (true) {
+                    var cc = this.check(at,input,context);
+                    if (cc === undefined) break;
+                    if ((at += cc) > len) break;
+                    if (max === "MAX") continue;
+                    if (--max == 0) break;
+                }
+            }
+            var result = {
+                input: input,
+                expression: this,
+                name: this.name,
+                start: context.at,
+                length: at - context.at,
+                context : context
+            };
+            if (this.name && context.onmatchs && context.onmatchs[this.name]) context.onmatchs[this.name](result, this.name, this, context);
+            context.at = at;
+            
+            return result;
+        }
+        
+        //返回表达式
+        this.toString = function () {
+            var min = this["@gamma.min"]; var max = this["@gamma.max"];
+            if (min === undefined) min = 1;
+            var expr = this._toString();
+            if (min === 0) {
+                if (max === undefined) return expr;
+                if (max === 1) return expr + "?";
+                if (max === "MAX") return expr + "*";
+                return expr + "{0," + max + "}";
+            } 
+            if (min === 1) {
+                if (max === undefined || max === 1) return expr;
+                if (max === "MAX") return expr + "+";
+                return expr + "{1," + max + "}";
+            }
+            if (max === "MAX") return expr + "{"+min+"}";
+            return expr + "{"+min+"," + max + "}";
+        }
+    }
+    var InExpression = function (letters, max) {
+        this.name = name || "GammaExpr-" + (_idseed++);
+        if (max === undefined) {
+            this.letters = letters;
+            this.check = function (at,input,context) {
+                var lts = this.letters,ch = input[at];
+                for (var i = 0, j = lts.length; i < j; i++) {
+                    if (lts[i] === ch) {
+                        return 1;
+                    }
+                }
+                return;
+            }
+            this._toString = function () { return "[" + this.letters + "]";}
+        } else {
+            this.from = letters.charCodeAt(0);
+            this.to = max.charCodeAt(0);
+            this.check = function (at, input, context) {
+                var ch = input[at];
+                if (ch >= this.from && ch <= this.to) {
+                    return 1;
+                } else return;
+            }
+            this._toString = function () { return "[" + this.from + "-" + this.to + "]";}
+        }
+    }
+    InExpression.prototype = new Expression();
+    var WordExpression = function (word) {
+        this.word = word;
+        this.check = function (at,input,context) {
+            var word = this.word,len = input.length;
+            for (var i = 0, j = word.length; i < j; i++) {
+                var k = at+i;if(k>=len)return;
+                if (input[k] !== word[i]) return;
+            }
+            return word.length;
+        }
+        this._toString = function () { return this.word;}
+    }
+    WordExpression.prototype = new Expression();
+
+    var WordsExpression = function (words) {
+        this.words = words;
+        this.check = function (at, input, context) {
+            var words = this.words, len = input.length;
+            for (var m = 0, n = words.length; m < n; m++) {
+                var word = words[m];
+                for (var i = 0, j = word.length; i < j; i++) {
+                    var k = at + i; if (k >= len) return;
+                    if (input[k] !== word[i]) return;
+                }
+                return word.length;
+            }
+            
+            
+        }
+        this._toString = function () {
+            var toStr = "";
+            var words = this.words;
+            for (var m = 0, n = words.length; m < n; m++) {
+                var word = words[m];
+                if (m != 0) toStr += "|";
+                toStr += word;
+            }
+            return toStr;
+        }
+    }
+    WordsExpression.prototype = new Expression();
+
+    var OrExpression = function () {
+        this.expressions = [];
+        this.add = function (exp) { this.expressions.push(exp); return this; }
+        this.check = function (at, input, context) {
+            var exps = this.expressions;
+            for (var i = 0, j = exps.length; i < j; i++) {
+                var exp = exps[i];
+                var result = exp.match(context);
+                return result.length;
+            }
+            return;
+        }
+        this._toString = function () {
+            var exps = this.expressions, str = "";
+            for (var i = 0, j = exps.length; i < j; i++) {
+                var exp = exps[i];
+                if (i != 0) str += "|";
+                str += "(" + exp.toString() + ")";
+                return str;
+            }
+        }
+    }
+
+
+    
+     /*文件流代码*/
+     var output = function (txt) {
+         var op = document.getElementById("op");
+         op.value += txt + "\n";
+     }
+     var Digital = new InExpression("0123456789");
+     var alpha = new InExpression('a', 'z');
+     var ALPHA = new InExpression("A", "Z");
+     var Operators = new WordsExpression(["+", "-", "*", "/"]);
+
+    
+
+     var WF = function ()       //定义一个产生式结构体
+     {
+         this.left; //定义产生式的左部
+         this.right; //定义产生式的右部
+     };
+     function Removing(p, q, n, count)
+     {
+         var count1 = n;
+         var flag = 0;
+         for (var i = 0; i < n; i++)//判断第一个非终结符是否存在直接左递归 if(p[i].left[0]==q[0])
+             if (p[i].left[0] == p[i].right[0])
+                 flag++;
+         if (flag != 0)//如果存在直接左递归则消除直接左递归
+         {
+             for (var i = 0; i < n; i++)
+                 if (p[i].left[0] == q[0])
+                     if (p[i].left[0] == p[i].right[0]) {
+                         var str;
+                         str = p[i].right.substr(1, int(p[i].right.length()));//取右部第二位开始的字串赋给str
+                         var temp = p[i].left; //有形如E->E+T之后变为E'->+TE'
+                         var temp1 = "'";
+                         p[i].left = temp + temp1;
+                         p[i].right = str + p[i].left;
+                     }
+                     else {
+                         var temp = p[i].left; //有形如E->T之后变为E->TE'
+                         var temp1 = "'";
+                         temp = temp + temp1;
+                         p[i].right = p[i].right + temp;
+                     }
+             var str = "'";
+             p[count1].left = p[0].left[0] + str;
+             p[count1].right = "ε";
+         }
+         for (var i = 0; i <= count; i++)//对每一个非终结符    迭代
+         {
+             for (var j = 0; j < i; j++)//对每一个小于i的非终结符
+             {
+                 for (var g = 0; g < n; g++) //对每一个产生式
+                     if (q[i] == p[g].left[0])   //i非终结符与第g产生式左边第一个字母相等
+                         if (p[g].right[0] == q[j])  //g产生式右边产生式第一个符号与第j个非终结符相等
+                         {
+                             for (var h = 0; h < n * n; h++)
+                                 if (p[h].left[0] == q[j] && int(p[h].left.length()) == 1) {
+                                     var str;
+                                     str = p[g].right.substr(1, int(p[g].right.length()));
+                                     p[++count1].left = p[g].left;
+                                     p[count1].right = p[h].right + str;
+                                 }
+                             p[g].left = "";
+                             p[g].right = "";
+                         }
+             }
+         }
+         for (var i = 0; i <= count; i++) // 去除间接递归产生式
+         {
+             flag = 0;
+             for (var j = 0; j < n * n; j++)
+                 if (p[j].left[0] == q[i])
+                     if (p[j].left[0] == p[j].right[0])
+                         flag++;
+             if (flag != 0) {
+                 for (var j = 0; j <= n * n; j++)
+                     if (p[j].left[0] == q[i])
+                         if (p[j].left[0] == p[j].right[0]) {
+                             var str;
+                             str = p[j].right.substr(1, int(p[j].right.length()));
+                             var temp = p[j].left;
+                             var temp1 = "'";
+                             p[j].left = temp + temp1;
+                             p[j].right = str + p[j].left;
+                         }
+                         else {
+                             var temp = p[j].left;
+                             var temp1 = "'";
+                             temp = temp + temp1;
+                             p[j].right = p[j].right + temp;
+                         }
+                 var str = "'";
+                 p[++count1].left = q[i] + str;
+                 p[count1].right = "ε";
+             }
+         }
+     }
+     function Delete(p, n) {
+         return 0;
+     }
+     function main() {
+
+         var i, j, flag = 0, count = 1, n;
+
+         var p = [];
+         var exprs = document.getElementById("source").value.split("\n");
+         //cout<<"请输入文法的个产生式："<<endl;
+         for (i = 0; i < exprs.length; i++)//输入产生式
+         {
+             var expr = exprs[i];
+             var s = expr.split("->");
+             if (s.length != 2) continue;
+             var wf = { left: s[0], right: s[1] };
+             p.push(wf);
+             //output(p[i].left + "->" + p[i].right + "\n");
+
+         }
+
+         output("即输入的文法产生式为：");
+         //cout<<"即输入的文法产生式为："<<endl;
+         for (i = 0; i < n; i++)
+             // cout<<p[i].left<<"-->"<<p[i].right<<endl;
+             output(p[i].left + "-->" + p[i].right);
+         output("*********************");
+         return;
+         //cout<<"*********************"<<endl;
+         var q = [20];         //对产生式的非终结符排序并存取在字符数组q
+         q[0] = p[0].left[0];        //把产生式的第一个非终结符存入q中
+         for (i = 1; i < n; i++)         //对非终结符排序并存取
+         {
+             flag = 0;
+             for (j = 0; j < i; j++)
+                 if (p[i].left == p[j].left)            //根据j<i循环避免重复非终结符因此由标志位判断
+                     flag++;          //说明有重复的
+             if (flag == 0)
+                 q[count++] = p[i].left[0];//没有重复加入q数组中
+         }
+         count--;
+         Removing(p, q, n, count);//调用消除递归子函数
+         Delete(p, n);//删除无用产生式
+         output("消除递归后的文法产生式为：");
+         //cout<<"消除递归后的文法产生式为："<<endl;
+         for (i = 0; i <= count; i++) {
+             for (var j = 0; j <= n * n; j++)
+                 if ((p[j].left[0] == q[i]) && (p[j].left.length) == 1)
+                     output(p[j].left + "-->" + p[j].right);
+                     //  cout<<p[j].left<<"-->"<<p[j].right<<endl;
+                 else continue;
+             for (j = 0; j <= n * n; j++)
+                 if ((p[j].left[0] == q[i]) && int(p[j].left.length) == 2)
+                     output(p[j].left + "-->" + p[j].right);
+                     // cout<<p[j].left<<"-->"<<p[j].right<<endl;
+                 else continue;
+         }
+         return 0;
+     }
+</script>
+ </body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+  <link href="../docs.css" type="text/css" rel="stylesheet"></link>
+  <script type="text/javascript" src="../../Scripts/yi.core.js"></script>
+  <script type="text/javascript" src="../../Scripts/yi.diagnosis.js"></script>
+  <script type="text/javascript" src="../../Scripts/yi.assert.helper.js"></script>
+ </head>
+ <body>
+ <h1>yi.async</h1>
+ <fieldset class='summary class x-able'>
+	<legend>描述</legend>
+	定时器或时间相关的函数
+ </fieldset>
+ <fieldset class='member function'>
+	<legend><h2>yi.async</h2></legend>
+	<ul><li><h3>async 异步执行</h3>
+	<table class='descriptor'>
+		<thead>
+			<tr><th colspan="3" class='name'>Description</th></tr>
+			<tr><td colspan ="3" class='description'>添加一个异步调用函数。该函数不会立即执行，而是会在脚本完成后执行。如果该函数返回%wait,它将会一直被反复执行</td></tr>
+			<tr><th colspan="3" class='name'>Parameters</th></tr>
+			<tr><th class='name'>Name</th><th class='type'>Type</th><th class='description'>Description</th></tr>
+			
+		</thead>
+		<tbody class='parameters'>
+			<tr><td class='name'>func</td><td class='type'>function</td><td  class='description'>异步调用的函数.他的this是一个执行上下文对象，第一个参数也是该上下文。如果重复执行，该上下文不会改变</td></td>
+			
+		</tbody>
+		<tfoot>
+			<tr>
+				<th colspan="3"></th>
+			</tr>
+		</tfoot>
+	</table></li>
+	<li>
+	<script subtype='test'>
+$assert.scope(function($assert,log){
+	var fn = function(){
+		log("execute fn.");
+		$assert.t  = ($assert.t || ($assert.t=0))+1;
+		yi.async(function(){
+			log("fn's inner func is invoked.");
+			$assert.tx=($assert.tx||0)+1;
+		});
+	};
+log("异步执行一个函数");
+yi.async(fn);
+log("该函数不会被立即执行");
+setTimeout(function(){//$assert.line
+	$assert(1,$assert.t);
+	$assert(1,$assert.tx);
+},200);//$assert.line
+var times = 0,ex;
+var fn2 = function(c){
+	c.c = (c.c || (c.c=0))+1;
+	this.k = (this.k || (this.k=0))+1;
+	ex = this.k;
+	log("execute fn2.");
+	$assert.t1=($assert.t1||0)+1;
+	if(times++<3) return "%reenter";
+};
+log("异步执行另外一个函数fn2");
+yi.async.interval= 20;
+var par = {};
+yi.async(fn2,par);
+log("fn2函数不会被立即执行");
+setTimeout(function(){//$assert.line
+	$assert(times,$assert.t1);
+	$assert(4,ex);
+	$assert(4,par.c);
+},1000);//$assert.line
+log("fn2 会执行4次");
+});//$assert
+
+	</script>	
+	</li>
+	</ul>
+ </fieldset>
+
+ </body>
+</html>

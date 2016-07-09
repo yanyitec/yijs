@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+ </head>
+ <body>
+ <div id="rs"></div>
+
+  <script type="text/javascript">
+  <!--
+
+var Perf = function(){
+	this._execs = {};
+	this._codes = {};
+	this.repeat = function(val){
+		this._repeat = val;return this;
+	}
+	this.times = function(val){
+		this._times = val;return this;
+	}
+	this.prepare = function(prepare){
+		this._prepare = prepare;return this;
+	}
+	this.test = function(name,test){
+		var str = test.toString();
+		var at = str.indexOf("(");
+		var at1 = str.indexOf(")");
+		var paramName = str.substring(at + 1,at1);
+		
+		var at = str.indexOf("{",at1);
+		var at1 = str.lastIndexOf("}");
+		var body = str.substring(at+1,at1);
+
+		//var rs=[];for(var i=0,i<this._times;i++) setTimeout(,Math.random() * 1000);
+		var code = "var __$$t0$$_= new Date();for(var __$$i$$_=0;__$$i$$_<"+(this._repeat || 1000)+";__$$i$$_++){\n\n"+body+"\n\n};var __$$t1$$_ = new Date();";
+		this._codes[name] = code;
+		code += "return {'':__$$t1$$_-__$$t0$$_,'at':__$$at$$_,'name':__$$name$$_};";
+		
+		var fn = new Function(paramName,"__$$name$$_","__$$at$$_",code);
+		this._execs[name] = fn;
+		return this;
+	}
+	this.exec = function(cb){
+		var result = {},me = this,c =0;
+		for(var n in this._execs){
+			var t = me._times;
+			for(var j=0;j<t;j++){
+				//c++;
+				(function(name,at,fn,me){
+					//setTimeout(function(){
+						var obj = me._prepare?me._prepare():undefined;
+						var func =fn;
+						var o = func.call(me,obj,name,j);
+						var sub = result[o.name] || (result[o.name]=[]);
+						sub[at] = o[""];
+					//	if(--c==0) cb.call(me,result);
+					//},parseInt(Math.random()*2000));
+				})(n,j,this._execs[n],this);
+			}
+		}
+		cb.call(me,result);
+	}
+	this.report = function(result,elem){
+		var htmlEncode = function(code){
+			return code.replace(/&/g,"&amp;").replace(/ /g,"&nbsp;").replace(/\t/g,"&nbsp;&nbsp;&nbsp;&nbsp;").replace(/</g,"&lt;").replace(/\n/g,"<br />");
+		}
+		var stat = [],colspan = (this._times + 3);
+		var thead = "<thead><tr><th>Name</th>";
+		var tbody = "",tc = 0;
+		for(var n in result){
+			var data = result[n];
+			//if(!tbody) tbody += "</tr>";
+			tbody+= "<tr><th>" + n + "</th>";
+			var total =0;
+	
+			for(var i=0;i<this._times;i++){
+				total += data[i];
+				if(!tc) {thead += "<th>" + i + "</th>";}
+				tbody += "<td>" + data[i] + "</td>";
+			}
+			tbody += "<td>"+total+"</td><td>"+total/this._times+"</td>";
+			tbody += "</tr>";
+			if(!tc) thead+= "<th>Total</th><th>Avg(a)</th></tr>";
+			stat.push({total:total,name:n,index:stat.length});
+			tc++;
+			
+		}
+		var tb = "<table border='1'>" + thead + "</tr></thead>";;
+		tb += "<tbody>" + tbody + "</tr></tbody>";
+		var diff = "<tr><td></td>";
+		for(i in stat) diff += "<th>" + stat[i].name + "</th>";
+		diff += "</tr>";
+		for(i in stat){
+			var row = stat[i];
+			diff += "<tr><th>" + row.name + "</th>";
+			for(var j in stat){
+				var col = stat[j];
+				 diff += "<td>" + (col.total-row.total)/row.total + "</td>";
+			}
+			diff += "</tr>";			
+		}
+		tb += "<tbody><tr><td colspan="+(colspan + 1)+"><table border='1' style='width:100%;'><tbody>" + diff + "</tbody></table></tbody>";
+		var tfoot = "";
+		
+		for(var n in this._codes){
+			tfoot += "<tr><th>code:<br />" + htmlEncode(n) + "</th><td colspan='" + colspan + "'>" + htmlEncode(this._codes[n]) + "</td></tr>";
+		}
+		tb += "<tfoot>" + tfoot + "</tfoot>";
+		tb+= "</table>";
+		elem.innerHTML = tb;
+		return this;
+	}
+}
+var pref = new Perf().times(15).repeat(5000000).prepare(function(){
+	return {
+		"fn":function(arg1){},
+		"arg1":function(arg1){
+			this.fn.call(this,arg1);
+		},
+		"argn":function(arg1,arg2,arg3,arg4,arg5){
+			this.fn.call(this,arg1,arg2,arg3,arg4,arg5);
+		}
+	};
+}).test("fn.call(this,arg)",function(obj){
+	obj.arg1("1");
+}).test("fn.call(this,arg1,arg2...)",function(obj){
+	obj.argn("1","2","3");
+}).exec(function(result){
+	this.report(result,document.getElementById("rs"));
+});
+	//var t0 = new Date();var s= new S();
+	//for(var i=0;i<1000000;i++){
+	//	
+	//}
+	//var t1 = new Date();
+	//alert(t1-t0);
+  //-->
+  </script>
+ </body>
+</html>

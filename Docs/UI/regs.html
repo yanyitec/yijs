@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+ </head>
+ <body>
+ <script type="text/javascript">
+ <!--
+var propRegx= /^\{\{([a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*)\}\}$/;
+var txt = "{{Na.si$_}}";
+//alert(propRegx.exec(txt));
+var expr = "(Na.s,Na.p.s)=>{return Na.s()>0?Na.s() + Na.p.s():Na.p.s();}";
+var depRegx = /^\(([a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*(?:,[a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*))\)/;
+var depRegx = /^\(([a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*(?:,[a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*))\)=>(.*)$/;
+alert(depRegx.exec(expr));
+var a=[];
+
+ //-->
+ </script>
+ </body>
+</html>
