@@ -1,7 +1,7 @@
 "strict";
 (function (Global, document) {
-
-    var yi = Global.yi = Global.$y = Global.yi || {};
+    var yi = Global.yi = {};
+    yi.Global = Global;
     var objProto = Object.prototype;
     var arrProto = Array.prototype;
     var aslice = arrProto.slice;
@@ -36,11 +36,15 @@
     if (!yi.log) {
         var log = yi.log = Global.$log = function () { console.log.apply(console, arguments); }
         var emptyLog = function () { };
+        emptyLog.debug = yi.noop;
         yi.log.enable = emptyLog.enable = function () {
             yi.log = Global.$log = log;
         }
         yi.log.disable = emptyLog.disable = function () {
             yi.log = Global.$log = emptyLog;
+        }
+        yi.log.error = emptyLog.error = function () {
+            console.log.apply(console, arguments);
         }
     }
 
@@ -645,7 +649,7 @@
     ///-----------------
     yi.Uri = (function (yi) {
 
-        var Uri = yi.Uri = function (url) {
+        var Uri = yi.Uri = function (url,ext) {
             var path = this.url = url;
             this.isAbsolute = false;
             var q = url.indexOf("?");
@@ -672,8 +676,11 @@
             var f = path.lastIndexOf("/");
             if (f >= 0 && f < path.length) this.file = path.substr(f + 1);
             else this.file = path;
-            var e = this.file.lastIndexOf(".");
-            if (e >= 0) this.ext = this.file.substr(e);
+            if (!exts) {
+                var e = this.file.lastIndexOf(".");
+                if (e >= 0) this.ext = this.file.substr(e);
+            }
+            
             this.path = path;
             this.toString = function () { return this.url; }
         }
@@ -682,7 +689,7 @@
         var protocols = Uri.protocols = ["http://", "https://"];
         Uri.bas = "";
 
-        var resolveUrl = Uri.resolve = function (name) {
+        var resolveUrl = Uri.resolve = function (name,ext) {
             var uri, replaced = false;
             if (uri = resolvedPaths[name]) return uri;
             var url = name.replace(/\\/g, "/"), paths = Uri.maps;
@@ -705,7 +712,8 @@
                 }
             }
             if (!isAbs) url = (Uri.bas || "").replace(/[\\/]$/g, "") + "/" + url;
-            uri = resolvedPaths[name] = new Uri(url);
+            uri = resolvedPaths[name] = new Uri(url, ext);
+            this.name = name;
             return uri;
         }
         var imgexts = Uri.imageExts = [".gif", ".png", ".jpg"];
@@ -906,6 +914,123 @@
         }
         return Require;
     })(yi, yi.Promise.Whenable, yi.Uri, yi.async);
+
+
+    yi.ajax = (function (global, document, yi,undefined) {
+        var yi = global.yi, Deferred = yi.Promise, extend = yi.override;
+        var createHttp = function () {
+            if (global.XMLHttpRequest) {
+                createHttp = function () {
+                    var http = new XMLHttpRequest();
+                    if (http.overrideMimeType) {
+                        http.overrideMimeType('text/xml');
+                    };
+                    return http;
+                }
+            } else {
+                createHttp = function () {
+                    var http = new ActiveXObject("Microsoft.XMLHTTP");
+                    return http;
+                }
+            }
+            return createHttp();
+        }
+        var ajax = function (opts) {
+            var http = createHttp(), dfd = new Deferred();
+            var headers = opts.headers;
+            if (headers) for (var n in headers) raw.setRequestHeader(n, headers[n]);
+            http.onreadystatechange = function () {
+                if (http.readyState == 4 || http.readyState=='completed') {
+                    if (http.status == 200) {
+                        var handler = acceptHandlers[opts.accept];
+                        var rs;
+                        if (handler) {
+                            try {
+                                rs = handler(http);
+                            } catch (ex) {
+                                dfd.reject({
+                                    error: "parse-response",
+                                    ex:ex,
+                                    opts: opts,
+                                    http: http
+                                });
+                            }
+                            
+                        }
+                        else rs = http.responseText;
+                        dfd.resolve(rs);
+                    } else {
+                        dfd.reject({
+                            error : "http",
+                            status: http.status,
+                            statusText: http.statusText,
+                            content: http.responseText,
+                            opts: opts,
+                            http:http
+                        });
+                    }
+                }
+            }
+            var url = opts.url;
+            var dataType = opts.dataType;
+            var dh = dataHandlers[dataType] || dataHandler;
+            var data;
+            try {
+                data = dh(opts.data);
+            } catch (ex) {
+                dfd.reject({error:"parse-senddata",ex:ex,opts:opts});
+            }
+            var method = opts.method ? opts.method.toUpperCase() : "GET";
+            var url = opts.url || "";
+            if (method == 'GET' && data) {
+                if (url.indexOf("?") < 0) url += "?";
+                url += "&" + data;
+            }
+            try {
+                http.open(method, url, opts.sync===true);
+                http.send(data);
+            } catch (e) {
+                dfd.reject({ error:"http-operation",ex:e});
+            }
+            return dfd.promise();
+        }
+        
+        var dataHandler = function (data) {
+            if (typeof data === "object") {
+                var rs = "";
+                for (var n in data) {
+                    if (rs != "") rs += "&";
+                    rs += encodeURIComponent(name);
+                    rs += "=";
+                    var val = data[n];
+                    rs += encodeURIComponent(val === null || val === undefined ? "" : val);
+                }
+                return rs;
+            }
+            return data === null || data === undefined ? "" : data.toString();
+        }
+        var dataHandlers =ajax.senddataHandlers = {
+            "":dataHandler,
+            "json": function (data) {
+                return JSON.stringify(data);
+            }
+        }
+        var accepts = {
+            "json": "text/json",
+            "xml": "text/xml"
+        }
+        var acceptHandlers = ajax.responseHandlers = {
+            "json": function (http) {
+                var text = xmlhttp.responseText;
+                return JSON.parse(text);
+            },
+            "xml": function (http) {
+                return xmlhttp.responseXml;
+            }
+        }
+        
+        return ajax;
+    })(Global, document,Global.yi);
 
     yi.Model = (function (yi, otoStr, override) {
         var seed = 1;
@@ -1119,13 +1244,11 @@
             },
 
             prop: function (names, value) {
-                var props = this["@model.props"], target;
-                if (props) {
-                    target = this["@model.object"][this["@model.name"]];
-                } else {
-                    props = this["@model.props"] = {};
-                    target = this["@model.object"][this["@model.name"]] = {};
-                }
+                var props = this["@model.props"]
+                    , target = this["@model.object"][this["@model.name"]];
+                if(!props) props = this["@model.props"] = {};
+                if (typeof target!=='object')  target = this["@model.object"][this["@model.name"]] = {};
+
                 var isArr = false;
                 if (otoStr.call(names) === '[object Array]') {
                     isArr = true;
@@ -1550,7 +1673,9 @@
 	    var depRegx = /^\(([a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*(?:,[a-zA-Z_\$][a-zA-Z_\$0-9]*(?:.[a-zA-Z_\$][a-zA-Z_\$0-9]*)*))\)=>(.*)$/;
 
 	    var tagContainers = {
-	        "": document.createElement("div"),
+	        "": yi.DIV = document.createElement("div"),
+	        "LEGEND": document.createElement("fieldset"),
+            "DT" : document.createElement("DL"),
 	        "LI": document.createElement("ul"),
 	        "TR": document.createElement("tbody"),
 	        "TD": document.createElement("tr"),
@@ -1559,8 +1684,8 @@
 	    };
 	    //oToStr = Object.prototype.toString;
 	    tagContainers.THEAD = tagContainers.TFOOT = tagContainers.TBODY;
-
-	    var cloneNode = function (elem) {
+	    tagContainers.DD = tagContainers.DT;
+	    var cloneNode = yi.cloneNode = function (elem) {
 	        var tag = elem.tagName;
 	        if (elem.cloneNode) return elem.cloneNode(true);
 	        var ctn = tagContainers[tag] || tagContainers[""];
@@ -1793,7 +1918,7 @@
 			    model.unsubscribe(handler);
 			}
 	    }
-	    Binders = {
+	    var Binders = {
 	        "@bind.each": eachBinder,
 	        "bind-click": function (element, accessor) {
 	            attach(element, 'click', function (evt) {
@@ -1985,47 +2110,53 @@
 
 	    };
 
-	    var Controller = function ( model,element) {
-	        var views = this["@controller.views"] = [];
-	        this.model = this["@controller.model"] = model || new Model();
-	        if (element) this.bind(element);
-            
+	    var ModelBinder = function ( model,element) {
+	        if (model || element) this.init(model,element);
 	    }
 
-	    Controller.prototype = {
-	        "$type": "yi.Controller",
+	    ModelBinder.prototype = {
+	        "$type": "yi.bind.ModelBinder",
+	        init: function (model, element) {
+	            var views = this["@modelBinder.views"] = [];
+	            this.model = this["@modelBinder.model"] = model || new Model();
+	            if (element) this.bind(element);
+	        },
 	        bind: function (view) {
-	            if (view["@controller.controller"]) throw new Error("Already binded");
-	            var views = this["@controller.views"];
+	            if (view["@modelBinder.modelBinder"]) throw new Error("Already binded");
+	            var views = this["@modelBinder.views"];
 	            for (var i = 0, j = views.length; i < j; i++) {
 	                if (views[i] == view) throw new Error("Already binded");
 	            }
-	            view["@controller.controller"] = this;
+	            view["@modelBinder.modelBinder"] = this;
 	            views.push(this.view = view);
-	            var model = this["@controller.model"];
-	            var binder = this["@controller.binder"];
+	            var model = this["@modelBinder.model"];
+	            var binder = this["@modelBinder.binder"];
 	            if (!binder) {
-	                binder = this["@controller.binder"] = createBinder(view, model);
+	                binder = this["@modelBinder.binder"] = createBinder(view, model);
 	            }
 	            var unbinds = binder(view, model.accessor);
-	            view["@controller.unbind"] = unbinds;
+	            view["@modelBinder.unbind"] = unbinds;
 	            return this;
 	        },
 	        "unbind": function (view) {
-	            var views = this["@controller.views"];
+	            var views = this["@modelBinder.views"];
 	            var hasIt = false;
 	            for (var i = 0, j = views.length; i < j; i++) {
 	                if (views[i] == view) { hasIt = true; break;}
 	            }
-	            var unbind = view["@controller.unbind"];
+	            var unbind = view["@modelBinder.unbind"];
 	            unbind();
 	            return this;
 	        }
 	    };
 	    var bind = function (element, model) {
-	        return new Controller(model,element);
+	        if (!model) model = new Model();
+	        var binder = createBinder(element, model);
+	        return binder(element, model.accessor);
 	    }
 	    bind.createBinder = createBinder;
+	    bind.Binders = Binders;
+	    bind.ModelBinder = ModelBinder;
 	    return bind;
 	})(yi,Global, document,yi.Model, otoStr);
 })(window, document);

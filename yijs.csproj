@@ -151,6 +151,7 @@
     <Content Include="Docs\Test\性能测试.html" />
     <Content Include="Docs\UI\Basic.html" />
     <Content Include="Docs\UI\Bind.html" />
+    <Content Include="Docs\Workflow\Designer.html" />
     <Content Include="favicon.ico" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
     <Content Include="Global.asax" />

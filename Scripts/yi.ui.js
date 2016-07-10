@@ -1,5 +1,5 @@
-(function(window,document,yi,undefined){
-    var yi = window.yi, createInstance = yi.createInstance, Promise = yi.Promise;
+(function(Global,document,yi,undefined){
+    var createInstance = yi.createInstance, Promise = yi.Promise;
     var camelize = yi.camelize;
     var override = yi.override, defer = yi.defer;
     var attach = yi.attach, detech = yi.detech;
@@ -234,7 +234,7 @@
         return ret;
     };
     var dragBg = document.createElement("div"); dragBg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;padding:0;margin:0;background-color:#ffffff;opacity:0.005;filter:alpha(opacity=0.5);z-index:999999999;cursor:move;";
-    var dragable = function (elem, evt, opts) {
+    var dragable =yi.dragable = function (elem, evt, opts) {
         evt || (evt = event);
         document.body.appendChild(dragBg);
         var storedPos = getStyle(elem, "position");
@@ -257,7 +257,7 @@
         dragBg.onmouseout = dragBg.onmouseup = function (evt) {
             onmove(evt);
             dragBg.parentNode.removeChild(dragBg);
-            if (opts.ondraged) opts.ondraged.call(elem, {
+            if (opts.ondrop) opts.ondrop.call(elem, {
                 position: storedPos,
                 x0: left0, y0: top0,
                 offsetX: offsetX, offsetY: offsetY
@@ -564,4 +564,76 @@
         msgBox.init(opts).open();
         return dfd;
     }
-})(window,document,yi);
+    yi.area = (function (document,yi) {
+        var controllers = {};
+        var require = yi.require,Promise = yi.Promise, ajax = yi.ajax, resolveUrl = yi.resolveUrl, cloneNode = yi.cloneNode;
+        var getArea = function (area, id, cx) {
+            var dfd = new Promise();
+            var data = area["@yi.ui"] || (area["@yi.ui"] = {});
+            if (data.controller && data.controller.dispose) {
+                data.controller.dispose(data["@controller.unbind"]);
+            }
+            load(id).done(function (info) {
+                var ctor = info.constructor;
+                var controller;
+                try {
+                    var element = cloneNode(info.element);
+                    var model = info.model.clone();
+                    controller = new ctor(model, element, cx);
+                    data["@controller.unbind"] = info.bind(element, model);
+                    area.innerHTML = "";
+                    for (var i = 0, j = element.childNodes.length; i < j; i++) {
+                        area.appendChild(element.firstChild);
+                    }
+                    
+                    if (controller.onComponentComplete) controller.onComponentComplete(model, area);
+                    data.controller = controller;
+                    dfd.resolve(controller);
+                } catch (ex) {
+                    if (controller && controller.onError) controller.onError(ex);
+                    dfd.reject({
+                        "error": "controller",
+                        ex: ex,
+                        area: area,
+                        controllerId: id,
+                        context:cx
+                    });
+                }
+                
+            });
+            return dfd;
+        }
+        
+        var load = getArea.load = function (id) {
+            var dfd = new Promise();
+            var ctrlr = controllers[id], html;
+            if (ctrlr) {
+                dfd.resolve(ctrlr); return dfd;
+            }
+            var uri = resolveUrl(id, true);
+            require([id]).done(function (c) {
+                if (html !== undefined) controllers[id] = create(html, c);
+                else ctrlr = ctrlr;
+            });
+            ajax({
+                url:uri.url + ".html"
+            }).done(function (t) {
+                if (ctrlr) controllers[id] = create(t, c);
+                else html = t;
+            });
+        }
+        var create = getArea.create = function (html, constructor) {
+            var element = document.createElement("div");
+            element.innerHTML = html;
+            var binder = createBinder(element, constructor.model);
+            var info = {
+                "@controller.binder": binder,
+                "@controller.element": element,
+                constructor : constructor
+            };
+            constructor.prototype = info;
+            return info;
+
+        }
+    })(document,yi);
+})(yi.Global,document,yi);

@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+	<meta charset="utf-8" />
+    <script src="../../Scripts/yi.core.js"></script>
+    <script src="../../Scripts/yi.ui.js"></script>
+    <style type="text/css">
+        .chart {
+            position:absolute;
+            width:100%;
+        }
+        .activity {
+            position:absolute;
+            width:200px;
+            height:50px;
+            background-color:#ccc;
+            color:#333;
+            border:1px solid black;
+            overflow:hidden;
+        }
+        #propertyView {
+            position:fixed;
+            right:0;
+            top:20px;
+        }
+    </style>
+</head>
+<body>
+<input type="button" onclick="addActivity()" value="add activity"/>  
+    <input type="button" onclick="addLine()" value="add Line" />  
+<div id="propertyView"></div> 
+<script>
+    var seed = 0;
+    var Chart = function () {
+        this.element = document.createElement("div");
+        this.element.className = "chart";
+        this.activities = [];
+        
+    }
+    Chart.prototype = {
+        showActivityProperties: function (act) {
+            var view = document.getElementById("propertyView");
+            view.innerHTML = "";
+            view.appendChild(act.propertyView);
+        },
+        addActivity: function (data) {
+            var chart = this;
+            var act = new Activity(data,this);
+            act.subscribe("focus", function (act) {
+                chart.showActivityProperties(act);
+            });
+            this.element.appendChild(act.element);
+        }
+    } 
+    var actClasses = {};
+    
+    yi.Observable.call(Chart.prototype);
+    var Activity = function (data,chart) {
+        var me = this;
+        this.chart = chart;
+        this.data = data;
+        
+        var typename = data.Type || "Activity";
+        if (!data.Id) data.Id = typename + (seed++).toString();
+        var extras = this.data.Extras || (this.data.Extras = {});
+        extras._w = data._w || 200; extras._h = extras._h || 50;
+        var elem = this.element = document.createElement("div");
+        elem.className = "activity " + (actClasses[typename] || "default-activity");
+        elem.innerHTML = "<div class='caption' title='" + data.Id + "'>" + data.Id + "</div><div class='type' title='" + typename + "'>" + typename + "</div>";
+        elem.style.left = extras._x + "px"; elem.style.top = extras._y + "px";
+        var cap = elem.firstChild;
+        cap.onmousedown = function (evt) {
+            if (chart.isLining) return;
+            
+            yi.dragable(elem, evt, {
+                "ondrop": function (arg) {
+                    extras.x = arg.x0 + arg.offsetX;
+                    extras.y = arg.y0 + arg.offsetY;
+                }
+            });
+        }
+        elem.onmousedown = function (evt) {
+            me.emit("focus", me);
+            if (!chart.isLining) return;
+        }
+
+        var model = this.model = new yi.Model();
+        var html = "";
+        for (var n in data) {
+            model.prop(n);
+            html += "<tr><th>" + n + "</th><td><input type='text' bind-value='" + n + "' /></tr>";
+        }
+        yi.DIV.innerHTML += "<table><tbody>" + html + "</tbody></table>";
+        model.setValue(data);
+        yi.bind(this.propertyView = yi.DIV.firstChild, model);
+        
+    }
+    Activity.prototype = new yi.Observable();
+
+    var Line = function (data,chart) {
+        var me = this;
+        this.data = data;
+        this.drawLine = function(line,elem,x0,y0){
+            var x = x0,y=y0;
+            if (line.w) {
+                x += line.w;
+                elem.style.width = Math.abs(line.w) + "px";
+                if(line.w<0) elem.style.left = x + "px";
+                else elem.style.left = x0 + "px";
+                elem.style.top = y0 + "px";
+            } else if (line.h) {
+                y += line.h;
+                elem.style.height = Math.abs(line.h) + "px";
+                if(line.h<0) elem.style.top = h + "px";
+                else elem.style.top = h0 + "px";
+                elem.style.left = x0 + "px";
+            }
+            return {x:x,y:y};
+        }
+        this.draw = function () {
+            var head = this.data.h;
+            act = chart.getActivityById(head.aid);
+            var x, y;
+            var x0 = x = act.x + head.x0;
+            var y0 = y = act.y + head.y0;
+            var p = me.drawLine(head, this.headElement, x, y);
+            x += p.x; y += p.y;
+
+            var body = this.data.b;
+            if (body) {
+                p = me.drawLine(body, this.bodyElement, x, y);
+                x += p.x; y += p.y;
+            }
+            var tail = this.data.t;
+            var x, y;
+            var p = me.drawLine(tail, this.tailElement, x, y);
+        }
+        this.from = function () {
+
+        }
+        this.to = function () {
+
+        }
+    }
+    
+    var chart = new Chart({});
+    var addActivity = function () {
+        chart.addActivity({
+            Id: null,
+            Type: "Activity",
+            Extras: { _x: 100, _y: 100 }
+        });
+    }
+    var addLine = function () {
+        chart.isLining = true;
+    }
+    document.body.appendChild(chart.element);
+</script>
+</body>
+</html>
