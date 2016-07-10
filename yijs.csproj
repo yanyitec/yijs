@@ -149,6 +149,7 @@
     <Content Include="Docs\Diagnosis\yi.console.html" />
     <Content Include="Docs\Diagnosis\yi.log.html" />
     <Content Include="Docs\Test\性能测试.html" />
+    <Content Include="Docs\UI\Basic.html" />
     <Content Include="Docs\UI\Bind.html" />
     <Content Include="favicon.ico" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />

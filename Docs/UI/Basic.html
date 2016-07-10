@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+	<meta charset="utf-8" />
+    <script src="../../Scripts/yi.core.js"></script>
+    <script src="../../Scripts/yi.ui.js"></script>
+</head>
+<body>
+<fieldset>
+    <legend>Mask</legend>
+    <div style="width:50%;height:200px;background-color:#0094ff" id="TestMask">test</div>
+    <input type="button" value="Mask" onclick="mask()" />
+    <input type="button" value="Unmask" onclick="unmask()" />
+    <script>
+        var mask = function () {
+            yi.mask({ target: document.getElementById("TestMask"),content:"Waiting.." });
+            
+        }
+        var unmask = function () {
+            yi.unmask(document.getElementById("TestMask"));
+        }
+    </script>
+</fieldset>
+
+    <fieldset>
+        <legend>Message</legend>
+        <input type="button" value="Keep center" onclick="showMessage(true)" />
+        <input type="button" value="Dragable" onclick="showMessage(false)" />
+        <script>
+            var showMessage = function (isKeepCenter) {
+                yi.messageBox({
+                    caption: "Warning",
+                    text: "something is not expected.",
+                    keepCentre: isKeepCenter,
+                    btns: { "Yes": "是", "No": "否" }
+                }).done(function (btnname) {
+                    alert(btnname);
+                });
+
+        }
+        
+        </script>
+    </fieldset>
+</body>
+</html>

@@ -7,6 +7,7 @@
     var aslice = arrProto.slice;
     var otoStr = objProto.toString;
     var invalid = yi.invalid = function () { throw new Error("Invalid operation."); }
+    yi.noop = function () { }
     var each = yi.each = function (obj, cb, arg) { for (var n in obj) if (cb.call(obj, obj[n], n, arg) === false) break; }
     var override = yi.override = function (dest) {
         if (!dest) dest = {};
@@ -16,6 +17,22 @@
         }
         return dest;
     }
+    var createInstanceFactory = {};
+    yi.createInstance = function (clsname, arg1, arg2, arg3, arg4, arg5) {
+        var creator = createInstanceFactory[clsname];
+        if (creator) return creator(arg1, arg2, arg3, arg4, arg5);
+        creator = new Function(arg1, arg2, arg3, arg4, arg5, "return new " + clsname + "(arg1,arg2,arg3,arg4,arg5);");
+        createInstanceFactory[clsname] = creator;
+        return creator(arg1, arg2, arg3, arg4, arg5);
+    }
+    yi.delegate = function (func, me, args) { return function () { return func.apply(me || this, args || arguments); } }
+    var camelize = yi.camelize = function camelize(attr) {
+        // /\-(\w)/g 正则内的 (\w) 是一个捕获，捕获的内容对应后面 function 的 letter
+        // 意思是将 匹配到的 -x 结构的 x 转换为大写的 X (x 这里代表任意字母)
+        return attr.replace(/\-(\w)/g, function (all, letter) { return letter.toUpperCase(); });
+    }
+    var trim = yi.trim = function (val) { return val.replace(/^\s+|\s+$/, ""); }
+
     if (!yi.log) {
         var log = yi.log = Global.$log = function () { console.log.apply(console, arguments); }
         var emptyLog = function () { };
@@ -77,12 +94,64 @@
     }
     //Model自己就是全局监听器
     yi.Observable.call(yi.Model);
-    yi.bind = function (func, me, args) { return function () { return func.apply(me || this, args || arguments); } }
-
+    
     ///-----------------
     /// async
     ///-----------------
+
     yi.async = (function (yi) {
+        var Timer = yi.Timer = function (val) {
+            this["@timer.tick"]=0;
+            this["@timer.interval"]=50;
+            if (val) this.interval(val);
+            var me = this;
+            this["@timer.onTick"] = function () {
+                var now = new Date(), self = me;
+                var funcs = self["@timer.handlers"];
+                for (var i = 0, j = funcs.length; i < j; i++) {
+                    var fn = funcs.shift();
+                    var re = fn.call(self ,now);
+                    if (re !== '%%discard') funcs.push(fn);
+                }
+                var tick = self["@timer.tick"];
+                if (funcs.length == 0 && tick) {
+                    clearInterval(tick); self["@timer.tick"] = 0;
+                }
+            };
+        }
+        Timer.prototype = {
+            "interval": function (val) {
+                if (val === undefined) return this["@timer.interval"];
+                var old = this["@timer.interval"];
+                var newval = this["@timer.interval"] = parseInt(val) || 50;
+                var tick = this["@timer.tick"];
+                if (tick && newval!=old) {
+                    clearInterval(tick);
+                    this["@timer.tick"]=setInterval(this["@timer.onTick"], newval);
+                }
+                return this;
+            },
+            isRunning:function(){return this["@timer.tick"]!=0;},
+            
+            "addListener": function (val) {
+                var funcs = this["@timer.handlers"] || (this["@timer.handlers"] = []);
+                funcs.push(val);
+                if (!this["@timer.tick"]) this["@timer.tick"] = setInterval(this["@timer.onTick"], this.interval());
+                return this;
+            },
+            "removeListener": function (val) {
+                var funcs = this["@timer.handlers"]; if (!funcs || funcs.length == 0) return this;
+                for (var i = 0, j = funcs.length; i < j; i++) {
+                    var fn;
+                    if ((fn = funcs.shift()) != val) funcs.push(fn);
+                }
+                var tick = this["@timer.tick"];
+                if (funcs.length == 0 && tick) {
+                    clearInterval(tick); this["@timer.tick"] = 0;
+                }
+                return this;
+            }
+        }
         var Async = function (interval, next, max) {
             this["@async.next"] = next;
             this["@async.interval"] = interval;
@@ -155,6 +224,8 @@
             async_stack.add(fn, arg);
         }
     })(yi);//end async
+
+    
 
     ///-----------------
     /// Promise
@@ -406,13 +477,18 @@
         var Whenable = function () {
             this.when = when;
             this.defer = function (func, args) {
-                this["@promise.when_obj"] = func;
-                this["@promise.when_arg"] = args;
-                this["@promise.when"] = this.when;
+                //this["@promise.when_obj"] = func;
+                //this["@promise.when_arg"] = args;
+                //this["@promise.when"] = this.when;
+                //this.when = this.defer = invalid;
+                //async(function (promise) {
+                //    promise["@promise.when"].call(promise, promise["@promise.when_obj"], promise["@promise.when_arg"], true);
+                //}, this);
+                var me = this, when = this.when;
+                setTimeout(function () {
+                   when.call(me,func, args, true);
+                });
                 this.when = this.defer = invalid;
-                async(function (promise) {
-                    promise["@promise.when"].call(promise, promise["@promise.when_obj"], promise["@promise.when_arg"], true);
-                }, this);
                 return this.thenable();
             }
 
@@ -558,6 +634,9 @@
         When.Whenable = Whenable;
         yi.When = When;
         Promise.proxy = createProxy;
+        yi.defer = function (dfd,args) {
+            return new When().defer(dfd,args);
+        }
         return Promise;
     })(yi, yi.async, each);
 
