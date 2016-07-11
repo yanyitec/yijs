@@ -239,9 +239,9 @@
         document.body.appendChild(dragBg);
         var storedPos = getStyle(elem, "position");
         elem.style.position = "absolute";
-        var left0 = getStyle(elem, "left"), top0 = getStyle(elem, "top");
-        var left = parseInt(left0) || 0;
-        var top = parseInt(top0) || 0;
+        var left0 = parseInt(getStyle(elem, "left"))||0, top0 = parseInt(getStyle(elem, "top"))||0;
+        var left = left0;
+        var top = top0;
         elem.style.left = left + "px"; elem.style.top = top + "px";
         var x0 = evt.clientX || evt.layerX, y0 = evt.clientY || evt.layerY;
         var offsetX, offsetY;

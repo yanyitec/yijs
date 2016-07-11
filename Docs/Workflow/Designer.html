@@ -14,15 +14,47 @@
             position:absolute;
             width:200px;
             height:50px;
-            background-color:#ccc;
+            background-color:#eee;
             color:#333;
             border:1px solid black;
-            overflow:hidden;
+            
+        }
+        .activity .caption {
+            font-weight:bold;
+            background-color:#333;
+            color:#eee;
+            padding:5px;
+            text-align:center;
+            cursor:move;
+        }
+        .resizer {
+            border:1px solid #999;
+            width:6px;
+            height:6px;
+            font-size:2px;
+            background-color:#efefef;
+            z-index:1;
+            display:none;
+        }
+        .resizer-tl { cursor:nw-resize;}
+        .resizer-tr { cursor:ne-resize;}
+        .resizer-bl { cursor:sw-resize;}
+        .resizer-br { cursor:se-resize;}
+        .liner {
+            display:none;
+            border:1px solid #000;
+            background-color:yellow;
+            font-size:2px;
+            width:6px;
+            height:6px;
+            z-index:2;
+            cursor:crosshair;
         }
         #propertyView {
             position:fixed;
             right:0;
             top:20px;
+            text-align:left;
         }
     </style>
 </head>
@@ -32,10 +64,12 @@
 <div id="propertyView"></div> 
 <script>
     var seed = 0;
+    
     var Chart = function () {
         this.element = document.createElement("div");
         this.element.className = "chart";
         this.activities = [];
+        this._editable = true;
         
     }
     Chart.prototype = {
@@ -44,6 +78,7 @@
             view.innerHTML = "";
             view.appendChild(act.propertyView);
         },
+        editable: function () { return this._editable;},
         addActivity: function (data) {
             var chart = this;
             var act = new Activity(data,this);
@@ -51,11 +86,13 @@
                 chart.showActivityProperties(act);
             });
             this.element.appendChild(act.element);
+            act.draw();
         }
     } 
     var actClasses = {};
     
     yi.Observable.call(Chart.prototype);
+    
     var Activity = function (data,chart) {
         var me = this;
         this.chart = chart;
@@ -67,89 +104,166 @@
         extras._w = data._w || 200; extras._h = extras._h || 50;
         var elem = this.element = document.createElement("div");
         elem.className = "activity " + (actClasses[typename] || "default-activity");
-        elem.innerHTML = "<div class='caption' title='" + data.Id + "'>" + data.Id + "</div><div class='type' title='" + typename + "'>" + typename + "</div>";
+        elem.innerHTML = "<div class='caption' bind-text='Id'>" + data.Id + "</div><div class='type' bind-text='Type'>" + typename + "</div>"
+        + "<div class='resizer resizer-tl' style='position:absolute;left:-4px;top:-4px;'></div><div class='resizer resizer-tr' style='position:absolute;right:-4px;top:-4px;'></div><div class='resizer resizer-bl' style='position:absolute;left:-4px;bottom:-4px;'></div><div class='resizer resizer-br' style='position:absolute;right:-4px;bottom:-4px;'></div><div style='position:absolute;' class='liner'></div><div style='position:absolute;' class='liner'></div><div style='position:absolute;' class='liner'></div><div style='position:absolute;' class='liner'></div>";
         elem.style.left = extras._x + "px"; elem.style.top = extras._y + "px";
-        var cap = elem.firstChild;
+
+        
+        this.topLiner = elem.childNodes[6];
+        this.rightLiner = elem.childNodes[7];
+        this.bottomLiner = elem.childNodes[8];
+        this.leftLiner = elem.childNodes[9];
+
+        var cap =this.captionElement = elem.firstChild;
+        var tp = this.typeElement= elem.childNodes[1];
         cap.onmousedown = function (evt) {
-            if (chart.isLining) return;
-            
+            me.emit("focus", me);
+            if (!chart.editable()) return;
             yi.dragable(elem, evt, {
+                "ondrag": function (elem, x, y) {
+                    //me.
+                },
                 "ondrop": function (arg) {
-                    extras.x = arg.x0 + arg.offsetX;
-                    extras.y = arg.y0 + arg.offsetY;
+                    me.model.accessor.Extras._x(arg.x0 + arg.offsetX);
+                    me.model.accessor.Extras._y(arg.y0 + arg.offsetY);
                 }
             });
         }
-        elem.onmousedown = function (evt) {
-            me.emit("focus", me);
-            if (!chart.isLining) return;
-        }
-
-        var model = this.model = new yi.Model();
-        var html = "";
-        for (var n in data) {
-            model.prop(n);
-            html += "<tr><th>" + n + "</th><td><input type='text' bind-value='" + n + "' /></tr>";
-        }
-        yi.DIV.innerHTML += "<table><tbody>" + html + "</tbody></table>";
-        model.setValue(data);
-        yi.bind(this.propertyView = yi.DIV.firstChild, model);
         
+        
+        elem.onmouseover = function () { if (!me.editable()) return; me.draw(); me.handlerVisible(true); }
+        elem.onmouseout = function () { if (!me.editable()) return;  me.handlerVisible(false); }
+
+        this.bottomLiner.onmousedown = function () {
+            var capture = new LineCapture();
+            capture.capture(me,"bottom");
+        }
+        var model = this.model = new yi.Model();
+        var html = "<tbody>";
+        for (var n in data) {
+            if (n == "Extras") continue;
+            model.prop(n);
+            html += "<tr><th><span></span>" + n + "</th><td><input type='text' bind-value='" + n + "' /></tr>";
+        }
+        var extrasModel = model.prop("Extras");
+        html += "<tr><th><span>+</span>Extras</th><td></td></tr></tbody><tbody style='display:none;' bind-with='Extras'>";
+        for (var n in extras) {
+            extrasModel.prop(n);
+            html += "<tr><th>&nbsp;&nbsp;" + n + "</th><td><input type='text' bind-value='" + n + "' /></tr>";
+        }
+        html += "</tbody>";
+        yi.DIV.innerHTML += "<table>" + html + "</table>";
+        yi.DIV.firstChild.firstChild.lastChild.firstChild.firstChild.onclick = function () {
+            var elem = this;
+            var target = elem.parentNode.parentNode.parentNode.nextSibling;
+            if (elem.innerHTML == "+") {
+                target.style.display = "";
+                elem.innerHTML = "-";
+            } else {
+                target.style.display = "none";
+                elem.innerHTML = "+";
+            }
+        }
+        model.setValue(data);
+        model.bind(this.propertyView = yi.DIV.firstChild);
+        model.bind(elem);
     }
     Activity.prototype = new yi.Observable();
-
-    var Line = function (data,chart) {
-        var me = this;
-        this.data = data;
-        this.drawLine = function(line,elem,x0,y0){
-            var x = x0,y=y0;
-            if (line.w) {
-                x += line.w;
-                elem.style.width = Math.abs(line.w) + "px";
-                if(line.w<0) elem.style.left = x + "px";
-                else elem.style.left = x0 + "px";
-                elem.style.top = y0 + "px";
-            } else if (line.h) {
-                y += line.h;
-                elem.style.height = Math.abs(line.h) + "px";
-                if(line.h<0) elem.style.top = h + "px";
-                else elem.style.top = h0 + "px";
-                elem.style.left = x0 + "px";
+    Activity.prototype.editable = function () { return this.chart.editable(); }
+    Activity.prototype.handlerVisible = function (v) {
+        for (var i = 2; i < 10; i++) this.element.childNodes[i].style.display = (v === true ? "block" : "none");
+        return this;
+    }
+    Activity.prototype.draw = function () {
+        var hw = parseInt(this.data.Extras._w / 2 - 4);
+        var hh = parseInt(this.data.Extras._h / 2 - 4)
+        this.topLiner.style.cssText = "position:absolute;top:-4px;left:" + hw + "px";
+        this.bottomLiner.style.cssText = "position:absolute;bottom:-4px;left:" + hw + "px";
+        this.leftLiner.style.cssText = "position:absolute;left:-4px;top:" + hh + "px";
+        this.rightLiner.style.cssText = "position:absolute;right:-4px;top:" + hh + "px";
+        return this;
+    }
+    var LineCapture = function (act) {
+        var lineBg  = this.bg = document.createElement("div"); lineBg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;padding:0;margin:0;background-color:#ffffff;opacity:0.005;filter:alpha(opacity=0.5);z-index:999999999;cursor:pointer;";
+    }
+    LineCapture.prototype = {
+        capture: function (startActivity, anchor) {
+            this.captureBottom(startActivity, startActivity.chart);
+        },
+        captureBottom: function (act,chart) {
+            document.body.appendChild(this.bg);
+            var extras0 = act.data.Extras;
+            var x0 = extras0._x + parseInt(extras0._w / 2);
+            var y0 = extras0._y +extras0._h;
+            var line = new Line();
+            chart.element.appendChild(line.container);
+            this.bg.onmousemove = function (evt) {
+                var x = evt.clientX || evt.layerX, y = evt.clientY || evt.layerY;
+                line.draw(x0,y0,x,y);
             }
-            return {x:x,y:y};
         }
-        this.draw = function () {
-            var head = this.data.h;
-            act = chart.getActivityById(head.aid);
-            var x, y;
-            var x0 = x = act.x + head.x0;
-            var y0 = y = act.y + head.y0;
-            var p = me.drawLine(head, this.headElement, x, y);
-            x += p.x; y += p.y;
+    };
+    var Line = function () {
+        this.container = document.createElement("div");
+        this.container.className = "line";
+    }
+    Line.prototype = {
+        draw: function (x0, y0, x1, y1) {
+            this.container.innerHTML = "";
+            if (x0 == x1) {
+                var line = document.createElement("div");
+                line.style.cssText = "position:absolute;z-index:10;background-color:#999;font-size:1px;color:#999;width:3px;height:" + Math.abs(y1 - y0) + "px;top:" + (y0 < y1 ? y0 : y1) + "px;left:" + x0 + "px";
+                this.container.appendChild(line);
+            } else if (y0 == y1) {
+                var line = document.createElement("div");
+                line.style.cssText = "position:absolute;z-index:10;background-color:#999;font-size:1px;color:#999;height:3px;width:" + Math.abs(x1 - x0) + "px;left:" + (x0 < x1 ? x0 : x1) + "px;top:" + y0 + "px";
+                this.container.appendChild(line);
+            } else {
+                var dx = x1 - x0;
+                var dy = y1 - y0;
+                var ux = ((dx > 0) << 1) - 1;//x的增量方向，取或-1
+                var uy = ((dy > 0) << 1) - 1;//y的增量方向，取或-1
+                var x = x0, y = y0, eps;//eps为累加误差
 
-            var body = this.data.b;
-            if (body) {
-                p = me.drawLine(body, this.bodyElement, x, y);
-                x += p.x; y += p.y;
+                eps = 0; dx = Math.abs(dx); dy = Math.abs(dy);
+                if (dx > dy) {
+                    for (x = x0; x != x1 + ux; x += ux) {
+                        this.drawPixel(x, y);
+                        eps += dy;
+                        if ((eps << 1) >= dx) {
+                            y += uy; eps -= dx;
+                        }
+                    }
+                }
+                else {
+                    for (y = y0; y != y1 + uy; y += uy) {
+                        this.drawPixel(x, y);
+                        eps += dx;
+                        if ((eps << 1) >= dy) {
+                            x += ux; eps -= dy;
+                        }
+                    }
+                }
             }
-            var tail = this.data.t;
-            var x, y;
-            var p = me.drawLine(tail, this.tailElement, x, y);
-        }
-        this.from = function () {
-
-        }
-        this.to = function () {
-
+            return this;
+        },
+        drawPixel: function (x, y, p) {
+            var div = document.createElement("div");
+            div.style.cssText = "position:absolute;z-index:10;background-color:#999;width:2px;height:2px;font-size:1px;";
+            div.style.left = x + "px"; div.style.top = y + "px";
+            this.container.appendChild(div);
+            return div;
         }
     }
+   
+
     
     var chart = new Chart({});
     var addActivity = function () {
         chart.addActivity({
             Id: null,
             Type: "Activity",
-            Extras: { _x: 100, _y: 100 }
+            Extras: { _x: 100, _y: 100,_w:200,_h:50 }
         });
     }
     var addLine = function () {

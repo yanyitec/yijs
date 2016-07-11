@@ -1096,6 +1096,10 @@
                 if (value === undefined) return this["@model.name"];
                 this["@model.name"] = value; return this;
             },
+
+            get_model: function () { return this; },
+            get_accessor: function () { return this["@model.accessor"]; },
+
             object : function (target, source) {
                 //get/set要观察的目标对象
                 // target 要观察的对象
@@ -1221,7 +1225,11 @@
                 /// <param name="evtname" type="String">事件名。如果该函数第2个参数没有，evtname='valuechange'.如果该值设置为enabled/disabled对象，表示启用/禁用事件</param>
                 /// <param name="evt" type="Object">事件对象</param>
                 /// <returns type="Object">监听器本身</returns>
-                
+                if (evtname === undefined) {
+                    var val = this["@model.object"][this["@model.name"]];
+                    var evtArgs = { type: "valuechange", sender: this, value: val, old: val, reason: (reason || "trigger") };
+                    return this.trigger("valuechange", evtargs);
+                }
                 if (this["@model.triggerDisabled"]) return this;
                 var obs = this['@model.subscribers'], its, it;
                 if (!obs) return this;
@@ -1356,7 +1364,9 @@
             }
         };
         var Accessor = function () {
-			this["$type"]="yi.Model.Accessor";
+            this["$type"] = "yi.Model.Accessor";
+            this.get_model = function () { return this["@model.model"]; }
+            this.get_accessor = function () { return this;};
             //this["@model.accessor"] = accor["@model.accessor"] = accor;
             this.subscribe = function (evtname, subscriber) {
                 this["@model.model"].subscribe(evtname, subscriber);
@@ -1978,13 +1988,19 @@
 				return function(){accessor.unsubscribe(handler);}
 	        },
 	        "@bind.value": function (element, accessor) {
-	            var evtHandler = function () { accessor(element.value); }
+	            var onchange = function () { tick = 0; accessor(element.value); }
+	            var tick;
+	            var evtHandler= function () {
+	                if (tick) clearTimeout(tick);
+	                tick = setTimeout(onchange, 180);
+	            }
 	            attach(element, "keydown", evtHandler);
+	            attach(element, "keyup", evtHandler);
 	            attach(element, "blur", evtHandler);
 				var handler = function (evt) { element.value = evt.value; };
 	            accessor.subscribe(handler);
 	            element.value = accessor();
-				return function(){accessor.unsubscribe(handler);}
+	            return function () { if (tick) clearTimeout(tick);accessor.unsubscribe(handler);}
 	        },
 	        "@bind.vtext": function (element, accessor) {
 				var handler = function (evt) { element.value = evt.value; };
@@ -2110,53 +2126,46 @@
 
 	    };
 
-	    var ModelBinder = function ( model,element) {
-	        if (model || element) this.init(model,element);
-	    }
-
-	    ModelBinder.prototype = {
-	        "$type": "yi.bind.ModelBinder",
-	        init: function (model, element) {
-	            var views = this["@modelBinder.views"] = [];
-	            this.model = this["@modelBinder.model"] = model || new Model();
-	            if (element) this.bind(element);
-	        },
-	        bind: function (view) {
-	            if (view["@modelBinder.modelBinder"]) throw new Error("Already binded");
-	            var views = this["@modelBinder.views"];
-	            for (var i = 0, j = views.length; i < j; i++) {
-	                if (views[i] == view) throw new Error("Already binded");
-	            }
-	            view["@modelBinder.modelBinder"] = this;
-	            views.push(this.view = view);
-	            var model = this["@modelBinder.model"];
-	            var binder = this["@modelBinder.binder"];
-	            if (!binder) {
-	                binder = this["@modelBinder.binder"] = createBinder(view, model);
-	            }
-	            var unbinds = binder(view, model.accessor);
-	            view["@modelBinder.unbind"] = unbinds;
-	            return this;
-	        },
-	        "unbind": function (view) {
-	            var views = this["@modelBinder.views"];
-	            var hasIt = false;
-	            for (var i = 0, j = views.length; i < j; i++) {
-	                if (views[i] == view) { hasIt = true; break;}
-	            }
-	            var unbind = view["@modelBinder.unbind"];
-	            unbind();
-	            return this;
+	    Model.prototype.bind = function (view) {
+	        var existed = view["@model.model"];
+	        if (existed && existed!=this) throw new Error("Already binded");
+	        var binders = this["@model.binders"] || (this["@model.binders"]=[]);
+	        for (var i = 0, j = binders.length; i < j; i++) {
+	            if (binders[i].view == view) throw new Error("Already binded");
 	        }
-	    };
+	        view["@model.model"] = this;
+	        binder = createBinder(view, this);
+	        var unbind = binder(view, this["@model.accessor"]);
+	        unbind.view = view;
+	        binders.push(unbind);
+	        return this;
+	    }
+	    Model.prototype.unbind = function (view) {
+	        var existed = view["@model.model"];
+	        if (!existed) return this;
+
+	        var binders = this["@model.binders"];
+	        if (!binders) return this;
+
+	        var unbind ,it;
+	        for (var i = 0, j = binders.length; i < j; i++) {
+	            it = binders.shift();
+	            if (it.view == view) { unbind = it; }
+	            else binders.push(it);
+	        }
+	        if (unbind) {
+	            view["@model.model"] = null;
+	            unbind();
+	        }
+	        return this;
+	    }
 	    var bind = function (element, model) {
 	        if (!model) model = new Model();
-	        var binder = createBinder(element, model);
-	        return binder(element, model.accessor);
+	        model.bind(element);
+	        return model;
 	    }
 	    bind.createBinder = createBinder;
 	    bind.Binders = Binders;
-	    bind.ModelBinder = ModelBinder;
 	    return bind;
 	})(yi,Global, document,yi.Model, otoStr);
 })(window, document);
