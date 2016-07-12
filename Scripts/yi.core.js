@@ -156,6 +156,7 @@
                 return this;
             }
         }
+        
         var Async = function (interval, next, max) {
             this["@async.next"] = next;
             this["@async.interval"] = interval;

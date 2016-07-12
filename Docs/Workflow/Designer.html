@@ -6,34 +6,46 @@
     <script src="../../Scripts/yi.core.js"></script>
     <script src="../../Scripts/yi.ui.js"></script>
     <style type="text/css">
+        .pixel {
+            width:3px;
+            height:3px;
+            background-color:darkslategrey;
+        }
         .chart {
+            padding:0;margin:0;
             position:absolute;
+            background-color:antiquewhite;
             width:100%;
+            overflow:auto;
+            
         }
         .activity {
-            position:absolute;
-            width:200px;
-            height:50px;
-            background-color:#eee;
-            color:#333;
-            border:1px solid black;
+            background-color:lightblue;
+            border-radius:6px;
+            border:2px solid cadetblue ;
             
         }
         .activity .caption {
             font-weight:bold;
-            background-color:#333;
+            background-color:cadetblue;
             color:#eee;
             padding:5px;
             text-align:center;
             cursor:move;
         }
+        .activity .type {
+            color:darkslateblue;
+            padding:5px;
+            height:20px;
+            line-height:20px;
+        }
         .resizer {
-            border:1px solid #999;
-            width:6px;
-            height:6px;
+            border:1px solid darkslateblue;
+            width:8px;
+            height:8px;
             font-size:2px;
-            background-color:#efefef;
-            z-index:1;
+            background-color:cornflowerblue;
+            z-index:1001;
             display:none;
         }
         .resizer-tl { cursor:nw-resize;}
@@ -42,19 +54,24 @@
         .resizer-br { cursor:se-resize;}
         .liner {
             display:none;
-            border:1px solid #000;
-            background-color:yellow;
+            border:1px solid darkslateblue ;
+            background-color:deepskyblue;
             font-size:2px;
-            width:6px;
-            height:6px;
-            z-index:2;
+            width:8px;
+            height:8px;
+            z-index:1001;
             cursor:crosshair;
+        }
+        .line {
+            
         }
         #propertyView {
             position:fixed;
             right:0;
             top:20px;
             text-align:left;
+            z-index:100;
+            background-color:cadetblue;
         }
     </style>
 </head>
@@ -67,6 +84,8 @@
     
     var Chart = function () {
         this.element = document.createElement("div");
+        this.element.style.height = "500px";
+        this.element.style.cssText = "height:500px;padding:0;margin:0;top:50px;left:50px;position:position:absolute;";
         this.element.className = "chart";
         this.activities = [];
         this._editable = true;
@@ -78,15 +97,36 @@
             view.innerHTML = "";
             view.appendChild(act.propertyView);
         },
-        editable: function () { return this._editable;},
+        editable: function () { return this._editable; },
+        checkPointerIn: function (sender, x, y) {
+            var acts = this.activities, result;
+            for (var i = 0, j = acts.length; i < j; i++) {
+                var act = acts[i]; if (act == sender) continue;
+                if (act.checkPointerIn(x, y)) {
+                    if (result) {
+                        if (result.element.style.zIndex < act.element.style.zIndex) {
+                            this.chart.element.removeChild(result.shaddow);
+                            result = act;
+                        } else {
+                            this.chart.element.removeChild(act.shaddow);
+                        }
+                    } else result = act;
+                }
+            }
+            return result;
+        },
         addActivity: function (data) {
             var chart = this;
             var act = new Activity(data,this);
             act.subscribe("focus", function (act) {
+                if (chart.focusActivity) chart.focusActivity.element.style.zIndex = 1000;
+                chart.focusActivity = act;
+                act.element.style.zIndex = 1100;
                 chart.showActivityProperties(act);
             });
             this.element.appendChild(act.element);
             act.draw();
+            this.activities.push(act);
         }
     } 
     var actClasses = {};
@@ -101,13 +141,16 @@
         var typename = data.Type || "Activity";
         if (!data.Id) data.Id = typename + (seed++).toString();
         var extras = this.data.Extras || (this.data.Extras = {});
-        extras._w = data._w || 200; extras._h = extras._h || 50;
+        extras._w = data._w || 200; extras._h = extras._h || 60;
         var elem = this.element = document.createElement("div");
         elem.className = "activity " + (actClasses[typename] || "default-activity");
+        var rzStyle = "position:absolute;width:8px;height:8px;";
+        var lnrStyle = "position:absolute;width:8px;height:8px;";
         elem.innerHTML = "<div class='caption' bind-text='Id'>" + data.Id + "</div><div class='type' bind-text='Type'>" + typename + "</div>"
-        + "<div class='resizer resizer-tl' style='position:absolute;left:-4px;top:-4px;'></div><div class='resizer resizer-tr' style='position:absolute;right:-4px;top:-4px;'></div><div class='resizer resizer-bl' style='position:absolute;left:-4px;bottom:-4px;'></div><div class='resizer resizer-br' style='position:absolute;right:-4px;bottom:-4px;'></div><div style='position:absolute;' class='liner'></div><div style='position:absolute;' class='liner'></div><div style='position:absolute;' class='liner'></div><div style='position:absolute;' class='liner'></div>";
+        + "<div class='resizer resizer-tl' style='" + rzStyle + ";top:-5px;left:-5px;'></div><div class='resizer resizer-tr' style='" + rzStyle + ";top:-5px;right:-5px;'></div><div class='resizer resizer-bl' style='" + rzStyle + ";bottom:-5px;left:-5px;'></div><div class='resizer resizer-br' style='" + rzStyle + ";bottom:-5px;right:-5px;'></div><div style='" + lnrStyle + "' class='liner'></div><div style='" + lnrStyle + "' class='liner'></div><div style='" + lnrStyle + "' class='liner'></div><div style='" + lnrStyle + "' class='liner'></div>";
         elem.style.left = extras._x + "px"; elem.style.top = extras._y + "px";
-
+        elem.style.cssText = "position:absolute;z-index:1000;width:" + extras._w + "px;height:" + extras._h + "px;left:" + extras._x + "px;top:" + extras._y + "px;";
+        
         
         this.topLiner = elem.childNodes[6];
         this.rightLiner = elem.childNodes[7];
@@ -174,32 +217,68 @@
         for (var i = 2; i < 10; i++) this.element.childNodes[i].style.display = (v === true ? "block" : "none");
         return this;
     }
+
+    Activity.prototype.checkPointerIn = function (x, y) {
+        var extras = this.data.Extras;
+        var shaddow = this.shaddow;
+        if (x >= extras._x && x <= extras._x + extras._w && y >= extras._y && y <= extras._y + extras._h) {
+            if (!shaddow) {
+                shaddow = this.shaddow = document.createElement("div");
+                shaddow.style.cssText = "border:2px solid red;position:absolute;z-index:1101;";
+            }
+            if (!shaddow.parentNode) {
+                shaddow.style.width = extras._w + "px";
+                shaddow.style.height = extras._h + "px";
+                shaddow.style.top = extras._y + "px";
+                shaddow.style.left = extras._x + "px";
+                this.chart.element.appendChild(shaddow);
+                return true;
+            }
+        } else {
+            if (shaddow && shaddow.parentNode) shaddow.parentNode.removeChild(shaddow);
+            return false;
+        }
+    }
+    
     Activity.prototype.draw = function () {
         var hw = parseInt(this.data.Extras._w / 2 - 4);
         var hh = parseInt(this.data.Extras._h / 2 - 4)
-        this.topLiner.style.cssText = "position:absolute;top:-4px;left:" + hw + "px";
-        this.bottomLiner.style.cssText = "position:absolute;bottom:-4px;left:" + hw + "px";
-        this.leftLiner.style.cssText = "position:absolute;left:-4px;top:" + hh + "px";
-        this.rightLiner.style.cssText = "position:absolute;right:-4px;top:" + hh + "px";
+        this.topLiner.style.cssText = "position:absolute;top:-5px;left:" + hw + "px";
+        this.bottomLiner.style.cssText = "position:absolute;bottom:-5px;left:" + hw + "px";
+        this.leftLiner.style.cssText = "position:absolute;left:-5px;top:" + hh + "px";
+        this.rightLiner.style.cssText = "position:absolute;right:-5px;top:" + hh + "px";
         return this;
     }
+    
     var LineCapture = function (act) {
-        var lineBg  = this.bg = document.createElement("div"); lineBg.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;padding:0;margin:0;background-color:#ffffff;opacity:0.005;filter:alpha(opacity=0.5);z-index:999999999;cursor:pointer;";
+        var lineBg = this.bg = document.createElement("div");
+        lineBg.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;padding:0;margin:0;background-color:#fff;opacity:0.005;filter:alpha(opacity=0.5);z-index:999999999;cursor:pointer;";
     }
     LineCapture.prototype = {
         capture: function (startActivity, anchor) {
             this.captureBottom(startActivity, startActivity.chart);
         },
         captureBottom: function (act,chart) {
-            document.body.appendChild(this.bg);
+            act.chart.element.appendChild(this.bg);
+            this.bg.style.width = chart.element.offsetWidth + "px";
+            this.bg.style.height = chart.element.offsetHeight + "px";
+
             var extras0 = act.data.Extras;
             var x0 = extras0._x + parseInt(extras0._w / 2);
             var y0 = extras0._y +extras0._h;
             var line = new Line();
             chart.element.appendChild(line.container);
+
+            var tick;
             this.bg.onmousemove = function (evt) {
-                var x = evt.clientX || evt.layerX, y = evt.clientY || evt.layerY;
-                line.draw(x0,y0,x,y);
+                if (tick) return;
+                var x = evt.offsetX || evt.layerX, y = evt.offsetY || evt.layerY;
+                chart.checkPointerIn(act,x,y);
+                tick = setTimeout(function () {
+                    tick = 0;
+                    line.draw(x0, y0, x, y);
+                }, 60);
+                
             }
         }
     };
@@ -212,11 +291,13 @@
             this.container.innerHTML = "";
             if (x0 == x1) {
                 var line = document.createElement("div");
-                line.style.cssText = "position:absolute;z-index:10;background-color:#999;font-size:1px;color:#999;width:3px;height:" + Math.abs(y1 - y0) + "px;top:" + (y0 < y1 ? y0 : y1) + "px;left:" + x0 + "px";
+                line.className = "pixel";
+                line.style.cssText = "position:absolute;z-index:5000;font-size:1px;height:" + Math.abs(y1 - y0) + "px;top:" + (y0 < y1 ? y0 : y1) + "px;left:" + x0 + "px";
                 this.container.appendChild(line);
             } else if (y0 == y1) {
                 var line = document.createElement("div");
-                line.style.cssText = "position:absolute;z-index:10;background-color:#999;font-size:1px;color:#999;height:3px;width:" + Math.abs(x1 - x0) + "px;left:" + (x0 < x1 ? x0 : x1) + "px;top:" + y0 + "px";
+                line.className = "pixel";
+                line.style.cssText = "position:absolute;z-index:5000;font-size:1px;width:" + Math.abs(x1 - x0) + "px;left:" + (x0 < x1 ? x0 : x1) + "px;top:" + y0 + "px";
                 this.container.appendChild(line);
             } else {
                 var dx = x1 - x0;
@@ -249,8 +330,9 @@
         },
         drawPixel: function (x, y, p) {
             var div = document.createElement("div");
-            div.style.cssText = "position:absolute;z-index:10;background-color:#999;width:2px;height:2px;font-size:1px;";
+            div.style.cssText = "position:absolute;z-index:5000;font-size:1px;";
             div.style.left = x + "px"; div.style.top = y + "px";
+            div.className =  "pixel";
             this.container.appendChild(div);
             return div;
         }
@@ -263,7 +345,7 @@
         chart.addActivity({
             Id: null,
             Type: "Activity",
-            Extras: { _x: 100, _y: 100,_w:200,_h:50 }
+            Extras: { _x: 100, _y: 100,_w:200,_h:60 }
         });
     }
     var addLine = function () {
